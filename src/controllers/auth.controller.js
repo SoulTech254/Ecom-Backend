@@ -2,6 +2,7 @@ import {
   createUser,
   updateUser,
   verifyUser,
+  logIn,
 } from "../services/auth.service.js";
 
 export const createUserHandler = async (req, res, next) => {
@@ -30,3 +31,16 @@ export const updateUserHandler = async (req, res, next) => {
     next(error);
   }
 };
+
+ export async function logInHandler (req,res){
+  try{
+      const {email,password} = req.body
+      const token = await logIn(email,password);
+  
+      res.cookie(token,token,{
+          httpOnly : true
+      }).json({token:token})
+  }catch(error){
+      throw error
+  }
+}

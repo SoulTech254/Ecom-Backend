@@ -5,6 +5,7 @@ import {
   sendVerificationCode,
 } from "../utils/verificationUtils.js";
 import bcrypt from "bcrypt";
+import { generateToken } from "../utils/userUtils.js";
 
 export const createUser = async (userData) => {
   const { password, phoneNumber, ...rest } = userData;
@@ -63,3 +64,23 @@ export const updateUser = async (data) => {
     throw new Error("Failed to update user");
   }
 };
+
+
+export async function logIn(email, password) {
+  try {
+      const existingUser = await User.findOne({ email });
+      if (!existingUser) {
+          console.log("User does not exist");
+          throw new Error("User not found");
+      }
+      const isPasswordValid = await bcrypt.compare(password, existingUser.password);
+      if (!isPasswordValid) {
+          console.log("Invalid Password");
+          throw new Error("Password is invalid");
+      }
+      const token = generateToken(existingUser);
+      return token;
+  } catch (error) {
+      throw error; // Throw the original error or handle it more specifically
+  }
+}
