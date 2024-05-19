@@ -1,8 +1,8 @@
-import User from "../models/user.model";
+import User from "../models/user.model.js";
 
-export const userExists = async (criteria) => {
+export const userExists = async (phoneNumber) => {
   try {
-    const existingUser = await User.findOne(criteria);
+    const existingUser = await User.findOne({ phoneNumber: phoneNumber });
     return !!existingUser;
   } catch (error) {
     console.error('Error checking user existence:', error);

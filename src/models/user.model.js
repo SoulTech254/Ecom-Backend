@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema(
     },
     phoneNumber: {
       type: String,
+      required: true,
     },
     email: {
       type: String,
@@ -45,15 +46,18 @@ const userSchema = new mongoose.Schema(
         type: String,
       },
     ],
-    isReceivingOffers: {
+    toReceiveOffers: {
       type: Boolean,
       default: true,
     },
-    dateOfBirth: {
+    DOB: {
       type: Date,
     },
     verificationCode: {
       type: String,
+    },
+    agreeTerms: {
+      type: Boolean,
     },
   },
   { timestamps: true }

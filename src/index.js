@@ -19,6 +19,7 @@ app.use(cors(corsOptions));
 dotenv.config();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(express.json());
 
 console.log(process.env.MONGO_URL);
 mongoose.connect(process.env.MONGO_URL).then(() => {
@@ -39,6 +40,6 @@ app.use((err, req, res, next) => {
   return res.status(statusCode).json({
     success: false,
     statusCode,
-    message
+    message,
   });
 });
