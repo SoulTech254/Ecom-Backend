@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import userRoutes from "./routes/user.route.js";
 import authRoutes from "./routes/auth.route.js";
 import bodyParser from "body-parser";
+import createProductRouter from "./routes/products.routes.js"
 import cors from "cors";
 
 const app = express();
@@ -21,12 +22,11 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 console.log(process.env.MONGO_URL);
-mongoose.connect(process.env.MONGO_URL).then(() => {
+mongoose.connect('mongodb+srv://Quickmart:QuickmartPassword@quickmartdb.vbx0qlj.mongodb.net/?retryWrites=true&w=majority&appName=QuickmartDB').then(() => {
   console.log("Database connected successfully!");
 });
 
-app.use("/api/v1/user", userRoutes);
-app.use("/api/v1/auth", authRoutes);
+
 
 const PORT = process.env.PORT || 9000;
 app.listen(PORT, () => {
@@ -42,3 +42,9 @@ app.use((err, req, res, next) => {
     message
   });
 });
+
+
+// Routes 
+app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/admin", createProductRouter);
