@@ -5,6 +5,7 @@ import {
   sendVerificationCode,
 } from "../utils/verificationUtils.js";
 import bcrypt from "bcrypt";
+import { generateToken } from "../utils/userUtils.js";
 
 export const createUser = async (userData) => {
   const { password, phoneNumber, ...rest } = userData;
@@ -21,7 +22,8 @@ export const createUser = async (userData) => {
       try {
         await newUser.save();
         await sendVerificationCode(`+254${phoneNumber}`, code);
-        return newUser;
+        const { password, verificationCode, ...user } = newUser.toObject();
+        return user;
       } catch (error) {
         return error;
       }
@@ -100,5 +102,47 @@ export const updatePassword = async (phoneNumber, password) => {
     return user;
   } catch (error) {
     throw new Error("Failed to update password");
+  }
+};
+
+export async function logIn(email, password) {
+  console.log(email, password);
+  try {
+    const existingUser = await User.findOne({ email: email });
+    if (!existingUser) {
+      console.log("User does not exist");
+      throw new Error("User not found");
+    }
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      existingUser.password
+    );
+    if (!isPasswordValid) {
+      console.log("Invalid Password");
+      throw new Error("Invalid Credentials");
+    }
+    const {
+      password: userPassword,
+      verificationCode,
+      ...user
+    } = existingUser.toObject();
+    const token = generateToken(existingUser);
+    return { user, token };
+  } catch (error) {
+    throw new Error(error.message);
+  }
+}
+
+export const resendOtp = async (phoneNumber) => {
+  try {
+    console.log(phoneNumber);
+    const user = await User.findOne({ phoneNumber });
+    console.log(user);
+    const code = generateVerificationCode();
+    user.verificationCode = code;
+    await user.save();
+    await sendVerificationCode(`+254${phoneNumber}`, code);
+  } catch (error) {
+    throw new Error(error.message);
   }
 };

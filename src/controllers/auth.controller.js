@@ -4,6 +4,8 @@ import {
   verifyUser,
   resetPassword,
   updatePassword,
+  logIn,
+  resendOtp,
 } from "../services/auth.service.js";
 import { userExists } from "../utils/userUtils.js";
 
@@ -25,7 +27,7 @@ export const verifyUserHandler = async (req, res, next) => {
   try {
     const { phoneNumber, otp } = req.body;
     const user = await verifyUser(phoneNumber, otp);
-    res.status(200).json("user verified");
+    res.status(200).json(user);
   } catch (error) {
     next(error);
   }
@@ -57,6 +59,32 @@ export const updatePasswordHandler = async (req, res, next) => {
     const pass = await updatePassword(phoneNumber, password);
     console.log(password);
     res.status(200).json("Password Updated");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export async function logInHandler(req, res, next) {
+  try {
+    const { email, password } = req.body;
+    const { token, user } = await logIn(email, password);
+    res
+      .cookie(token, token, {
+        httpOnly: true,
+      })
+      .json(user);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const resendOtpHandler = async (req, res, next) => {
+  try {
+    console.log(req.body);
+    const { phoneNumber } = req.body;
+    console.log(phoneNumber);
+    const code = await resendOtp(phoneNumber);
+    res.status(200).json("OTP Resent");
   } catch (error) {
     next(error);
   }
