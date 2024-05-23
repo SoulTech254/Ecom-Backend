@@ -4,7 +4,7 @@ import Product from "../models/products.models.js";
 export const createProductHandler = async (req, res, next) => {
     try {
       const newProduct = await createProduct(req.body);
-      res.status(201).json("Product created");
+      res.status(201).json(newProduct);
     } catch (error) {
       next(error);
     }

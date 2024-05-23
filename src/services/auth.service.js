@@ -9,24 +9,29 @@ import { generateToken } from "../utils/userUtils.js";
 
 export const createUser = async (userData) => {
   const { password, phoneNumber, ...rest } = userData;
-  if (userExists(phoneNumber)) {
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    const code = generateVerificationCode();
-    const newUser = new User({
-      ...rest,
-      password: hashedPassword,
-      phoneNumber,
-      verificationCode: code,
-    });
-    try {
-      await newUser.save();
-      await sendVerificationCode(`+254${phoneNumber}`, code);
-      return newUser;
-    } catch (error) {
-      return error;
+  try {
+    if (userExists(phoneNumber)) {
+      const hashedPassword = bcrypt.hashSync(password, 10);
+      const code = generateVerificationCode();
+      const newUser = new User({
+        ...rest,
+        password: hashedPassword,
+        phoneNumber,
+        verificationCode: code,
+      });
+      try {
+        await newUser.save();
+        await sendVerificationCode(`+254${phoneNumber}`, code);
+        const { password, verificationCode, ...user } = newUser.toObject();
+        return user;
+      } catch (error) {
+        return error;
+      }
+    } else {
+      throw new Error("User already Exists");
     }
-  }else{
-    throw new Error("User already Exists")
+  } catch (error) {
+    throw new Error(error.message);
   }
 };
 
@@ -38,15 +43,20 @@ export const createUser = async (userData) => {
  * @return {Promise<object>} The user object if verification is successful, otherwise an error.
  */
 export const verifyUser = async (phoneNumber, code) => {
+  console.log(phoneNumber);
   try {
     const user = await User.findOne({ phoneNumber });
-    if (user.verificationCode === code) {
-      return user;
+    if (user) {
+      if (user.verificationCode === code) {
+        return user;
+      } else {
+        throw new Error("Invalid verification code");
+      }
     } else {
-      throw new Error("Invalid verification code");
+      throw new Error("User not found"); // or handle this case differently based on your requirements
     }
   } catch (error) {
-    return error;
+    throw new Error(error.message);
   }
 };
 
@@ -65,22 +75,74 @@ export const updateUser = async (data) => {
   }
 };
 
+export const resetPassword = async (phoneNumber) => {
+  try {
+    const user = await User.findOne({ phoneNumber: phoneNumber });
+    if (!user) {
+      throw new Error("User not found");
+    }
+    const code = generateVerificationCode();
+    user.verificationCode = code;
+    await user.save();
+    await sendVerificationCode(`+254${phoneNumber}`, code);
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+export const updatePassword = async (phoneNumber, password) => {
+  try {
+    const user = await User.findOne({ phoneNumber });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+
+    await user.save();
+    return user;
+  } catch (error) {
+    throw new Error("Failed to update password");
+  }
+};
 
 export async function logIn(email, password) {
+  console.log(email, password);
   try {
-      const existingUser = await User.findOne({ email });
-      if (!existingUser) {
-          console.log("User does not exist");
-          throw new Error("User not found");
-      }
-      const isPasswordValid = await bcrypt.compare(password, existingUser.password);
-      if (!isPasswordValid) {
-          console.log("Invalid Password");
-          throw new Error("Password is invalid");
-      }
-      const token = generateToken(existingUser);
-      return token;
+    const existingUser = await User.findOne({ email: email });
+    if (!existingUser) {
+      console.log("User does not exist");
+      throw new Error("User not found");
+    }
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      existingUser.password
+    );
+    if (!isPasswordValid) {
+      console.log("Invalid Password");
+      throw new Error("Invalid Credentials");
+    }
+    const {
+      password: userPassword,
+      verificationCode,
+      ...user
+    } = existingUser.toObject();
+    const token = generateToken(existingUser);
+    return { user, token };
   } catch (error) {
-      throw error; // Throw the original error or handle it more specifically
+    throw new Error(error.message);
   }
 }
+
+export const resendOtp = async (phoneNumber) => {
+  try {
+    console.log(phoneNumber);
+    const user = await User.findOne({ phoneNumber });
+    console.log(user);
+    const code = generateVerificationCode();
+    user.verificationCode = code;
+    await user.save();
+    await sendVerificationCode(`+254${phoneNumber}`, code);
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
