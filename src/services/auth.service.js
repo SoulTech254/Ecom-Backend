@@ -19,14 +19,10 @@ export const createUser = async (userData) => {
         phoneNumber,
         verificationCode: code,
       });
-      try {
-        await newUser.save();
-        await sendVerificationCode(`+254${phoneNumber}`, code);
-        const { password, verificationCode, ...user } = newUser.toObject();
-        return user;
-      } catch (error) {
-        return error;
-      }
+      await newUser.save();
+      await sendVerificationCode(`+254${phoneNumber}`, code);
+      const { password, verificationCode, ...user } = newUser.toObject();
+      return user;
     } else {
       throw new Error("User already Exists");
     }
@@ -53,7 +49,7 @@ export const verifyUser = async (phoneNumber, code) => {
         throw new Error("Invalid verification code");
       }
     } else {
-      throw new Error("User not found"); // or handle this case differently based on your requirements
+      throw new Error("User not found");
     }
   } catch (error) {
     throw new Error(error.message);

@@ -5,22 +5,20 @@ export const createProduct = async (productData) => {
   const { productName, SKU, ...rest } = productData;
 
   try {
-    const exists = await productExists(SKU);  // Await the result of the productExists function
-    
-    if (!exists) {  // Check if the product does not exist
-      const newProduct = new Product({
-        ...rest,
-        productName,
-        SKU,
-      });
-      
-      await newProduct.save();
-      return newProduct;
-    } else {
+    const exists = await productExists(SKU);
+    if (exists) {
       throw new Error("Product already exists");
     }
+    const newProduct = new Product({
+      ...rest,
+      productName,
+      SKU,
+    });
+
+    await newProduct.save();
+    return newProduct;
   } catch (error) {
-    throw new Error("Error creating product: " + error.message);
+    throw new Error(error.message);
   }
 };
 

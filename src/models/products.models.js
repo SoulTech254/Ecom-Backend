@@ -2,22 +2,24 @@ import mongoose from "mongoose";
 
 const productsSchema = new mongoose.Schema(
   {
-    level_1_name: {
-      type: String,
-      required: true,
-    },
-    level_2_name: {
-      type: String,
-      required: true,
-    },
-    level_3_name: {
+    category: {
+      level_1_name: {
         type: String,
+        required: true,
       },
+      level_2_name: {
+        type: String,
+        required: true,
+      },
+      level_3_name: {
+          type: String,
+        }, 
+    },
     productName: {
       type: String,
       required: true,
     },
-    Brand: {
+    brand: {
       type: String,
       required:true,
     },
@@ -33,6 +35,9 @@ const productsSchema = new mongoose.Schema(
     },
     noOfUnits : {
         type: String
+    },
+    images: {
+      type: [String],
     },
   },
   { timestamps: true }
