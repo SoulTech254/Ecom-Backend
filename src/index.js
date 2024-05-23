@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import userRoutes from "./routes/user.route.js";
 import authRoutes from "./routes/auth.route.js";
 import bodyParser from "body-parser";
-import createProductRouter from "./routes/products.routes.js"
+import productRoutes from "./routes/products.routes.js"
 import cors from "cors";
 
 const app = express();
@@ -48,4 +48,4 @@ app.use((err, req, res, next) => {
 // Routes 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/admin", createProductRouter);
+app.use("/api/v1/admin/products", productRoutes);
