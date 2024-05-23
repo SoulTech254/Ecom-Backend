@@ -1,14 +1,14 @@
-export function pagination(model) {
+export function pagination(model, query = {}) {
     return async (req, res, next) => {
         const page = parseInt(req.query.page) || 1;  // Default to page 1 if not provided
-        const limit = parseInt(req.query.limit) || 2;  // Default to limit 10 if not provided
+        const limit = parseInt(req.query.limit) || 5;  // Default to limit 5 if not provided
         const startIndex = (page - 1) * limit;
         const endIndex = page * limit;
 
         const results = {};
 
         // Include the total count of the items in the collection
-        results.totalCount = await model.countDocuments().exec();
+        results.totalCount = await model.countDocuments(query).exec();
 
         // Calculate and include the total number of pages
         results.totalPages = Math.ceil(results.totalCount / limit);
@@ -26,12 +26,20 @@ export function pagination(model) {
                 limit: limit
             };
         }
-        const totalCount = await model.countDocuments().exec();
+
+        const totalCount = await model.countDocuments(query).exec();
         if (startIndex >= totalCount) {
             return res.status(404).json({ message: "No such page exists" });
         }
+
         try {
-            results.results = await model.find().limit(limit).skip(startIndex).exec();
+            if (req.query.productName) {
+                // If productName query parameter is provided, filter results by productName
+                results.results = await model.find({ ...query, productName: req.query.productName }).limit(limit).skip(startIndex).exec();
+            } else {
+                // If productName query parameter is not provided, return all results
+                results.results = await model.find(query).limit(limit).skip(startIndex).exec();
+            }
             res.paginatedResults = results;
             next();
         } catch (error) {
