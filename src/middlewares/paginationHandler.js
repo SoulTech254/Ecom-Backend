@@ -26,7 +26,10 @@ export function pagination(model) {
                 limit: limit
             };
         }
-
+        const totalCount = await model.countDocuments().exec();
+        if (startIndex >= totalCount) {
+            return res.status(404).json({ message: "No such page exists" });
+        }
         try {
             results.results = await model.find().limit(limit).skip(startIndex).exec();
             res.paginatedResults = results;
