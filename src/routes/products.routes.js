@@ -5,7 +5,8 @@ import { createProductHandler,
 
 const router = express.Router();
 
-router.post("/createProduct",createProductHandler);
-router.get("/viewProducts",productsPageHandler);
+router.post("/",createProductHandler);
+router.get("/",productsPageHandler);
+router.get("/id",productsPageHandler);
 
 export default router

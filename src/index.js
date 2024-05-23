@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import userRoutes from "./routes/user.route.js";
 import authRoutes from "./routes/auth.route.js";
 import bodyParser from "body-parser";
-import productRoutes from "./routes/products.routes.js"
+import productRoutes from "./routes/products.routes.js";
 import cors from "cors";
 
 const app = express();
@@ -23,16 +23,23 @@ app.use(bodyParser.json());
 app.use(express.json());
 
 console.log(process.env.MONGO_URL);
-mongoose.connect('mongodb+srv://Quickmart:QuickmartPassword@quickmartdb.vbx0qlj.mongodb.net/?retryWrites=true&w=majority&appName=QuickmartDB').then(() => {
-  console.log("Database connected successfully!");
-});
-
-
+mongoose
+  .connect(
+    "mongodb+srv://Quickmart:QuickmartPassword@quickmartdb.vbx0qlj.mongodb.net/?retryWrites=true&w=majority&appName=QuickmartDB"
+  )
+  .then(() => {
+    console.log("Database connected successfully!");
+  });
 
 const PORT = process.env.PORT || 9000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Routes
+app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/admin/products", productRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
@@ -43,9 +50,3 @@ app.use((err, req, res, next) => {
     message,
   });
 });
-
-
-// Routes 
-app.use("/api/v1/user", userRoutes);
-app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/admin/products", productRoutes);
