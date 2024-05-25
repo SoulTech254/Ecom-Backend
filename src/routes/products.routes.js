@@ -8,7 +8,7 @@ import { postProductHandler,
 const router = express.Router();
 
 router.post("/createProduct",postProductHandler);
-router.get("/viewProducts",getProductsPageHandler);
+router.get("/",getProductsPageHandler);
 router.put("/updateProduct",updateProductHandler);
 router.delete("/deleteProduct",deleteProductHandler);
 export default router

@@ -5,6 +5,7 @@ import userRoutes from "./routes/user.route.js";
 import authRoutes from "./routes/auth.route.js";
 import bodyParser from "body-parser";
 import productRoutes from "./routes/products.routes.js";
+import superAdminRoutes from "./routes/superAdmin.routes.js"
 import cors from "cors";
 
 const app = express();
@@ -25,7 +26,7 @@ app.use(express.json());
 console.log(process.env.MONGO_URL);
 mongoose
   .connect(
-    "mongodb+srv://Quickmart:QuickmartPassword@quickmartdb.vbx0qlj.mongodb.net/?retryWrites=true&w=majority&appName=QuickmartDB"
+    process.env.MONGO_URL
   )
   .then(() => {
     console.log("Database connected successfully!");
@@ -40,6 +41,7 @@ app.listen(PORT, () => {
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin/products", productRoutes);
+app.use("/api/v1/superAdmin", superAdminRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
