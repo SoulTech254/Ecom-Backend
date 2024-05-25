@@ -2,8 +2,10 @@ export function pagination(model, query = {}) {
   return async (req, res, next) => {
     try {
       const page = parseInt(req.query.page) || 1;
-      console.log("page: ", page);
+      console.log("page", page);
       const limit = parseInt(req.query.limit) || 2;
+      const searchQuery = req.query.searchQuery || "";
+      const sortOption = req.query.sortOption || "newest";
 
       const startIndex = (page - 1) * limit;
 
@@ -14,31 +16,38 @@ export function pagination(model, query = {}) {
         },
       };
 
-      // Count total documents
-      const totalCount = await model.countDocuments(query).exec();
+      const countFilter = searchQuery
+        ? { ...query, productName: { $regex: searchQuery, $options: "i" } }
+        : query;
+
+      const totalCount = await model.countDocuments(countFilter).exec();
       results.metadata.totalCount = totalCount;
 
-      // Calculate total pages
       results.metadata.totalPages = Math.ceil(totalCount / limit);
 
-      // Check if startIndex exceeds totalCount
       if (startIndex >= totalCount) {
         return res.status(404).json({ message: "No such page exists" });
       }
 
-      // Fetch paginated results
-      let queryBuilder = model.find(query).skip(startIndex).limit(limit);
+      let queryBuilder = searchQuery
+        ? model.find({
+            ...query,
+            productName: { $regex: searchQuery, $options: "i" },
+          })
+        : model.find(query);
 
-      // Filter by productName if provided in query
-      if (req.query.productName) {
-        queryBuilder = queryBuilder.find({
-          productName: req.query.productName,
-        });
+      if (sortOption === "newest") {
+        queryBuilder = queryBuilder.sort({ createdAt: -1 });
+      } else if (sortOption === "oldest") {
+        queryBuilder = queryBuilder.sort({ createdAt: 1 });
+      } else if (sortOption === "bestmatch") {
+        queryBuilder = queryBuilder.sort({ productName: 1 });
       }
+
+      queryBuilder = queryBuilder.skip(startIndex).limit(limit);
 
       results.results = await queryBuilder.exec();
 
-      // Determine if next page exists
       if (startIndex + limit < totalCount) {
         results.next = {
           page: page + 1,
@@ -46,7 +55,6 @@ export function pagination(model, query = {}) {
         };
       }
 
-      // Determine if previous page exists
       if (startIndex > 0) {
         results.previous = {
           page: page - 1,
