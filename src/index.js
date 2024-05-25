@@ -5,6 +5,7 @@ import userRoutes from "./routes/user.route.js";
 import authRoutes from "./routes/auth.route.js";
 import bodyParser from "body-parser";
 import productRoutes from "./routes/products.routes.js";
+import superAdminRoutes from "./routes/superAdmin.routes.js"
 import cors from "cors";
 
 const app = express();
@@ -36,6 +37,7 @@ app.listen(PORT, () => {
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin/products", productRoutes);
+app.use("/api/v1/superAdmin", superAdminRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
