@@ -22,16 +22,16 @@ export const createProduct = async (productData) => {
   }
 };
 
-export const updateProduct = async (productData) => {
+export const updateProduct = async (id, productData) => {
   const { productName, SKU, newSKU, ...rest } = productData;
 
   try {
     const updatedProduct = await Product.findOneAndUpdate(
-      { SKU: SKU },
+      { _id: id },
       { productName, SKU: newSKU || SKU, ...rest },
       { new: true }
     );
-    
+
     if (!updatedProduct) {
       throw new Error("Product not found");
     }
@@ -57,7 +57,10 @@ export const deleteProduct = async (productData) => {
     if (confirm === true) {
       const deletedProduct = await Product.findOneAndDelete({ SKU: SKU });
 
-      return { message: "Product deleted successfully", product: deletedProduct };
+      return {
+        message: "Product deleted successfully",
+        product: deletedProduct,
+      };
     } else {
       return { message: "Product deletion canceled", product: productToDelete };
     }
@@ -65,4 +68,3 @@ export const deleteProduct = async (productData) => {
     throw new Error("Error deleting product: " + error.message);
   }
 };
-

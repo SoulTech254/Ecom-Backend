@@ -25,10 +25,11 @@ export const getProductsPageHandler = [
 
 export const updateProductHandler = async (req, res) => {
   try {
-    const updatedProduct = await updateProduct(req.body);
+    const id = req.params.id;
+    const updatedProduct = await updateProduct(id, req.body);
     res.status(200).json({ success: true, product: updatedProduct });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -37,6 +38,15 @@ export const deleteProductHandler = async (req, res) => {
     const deletedProduct = await deleteProduct(req.body);
     res.status(200).json({ success: true, product: deletedProduct });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    next(error);
+  }
+};
+
+export const getProductHandler = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    res.status(200).json({ product });
+  } catch (error) {
+    next(error);
   }
 };
