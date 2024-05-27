@@ -26,7 +26,10 @@ const productsSchema = new mongoose.Schema(
     SKU: {
       type: String,
     },
-    unitOfMeasurement: {
+    measurementUnit: {
+      type: String,
+    },
+    size: {
       type: String,
     },
     price: {

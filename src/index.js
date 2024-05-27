@@ -24,13 +24,9 @@ app.use(bodyParser.json());
 app.use(express.json());
 
 console.log(process.env.MONGO_URL);
-mongoose
-  .connect(
-    process.env.MONGO_URL
-  )
-  .then(() => {
-    console.log("Database connected successfully!");
-  });
+mongoose.connect(process.env.MONGO_URL).then(() => {
+  console.log("Database connected successfully!");
+});
 
 const PORT = process.env.PORT || 9000;
 app.listen(PORT, () => {

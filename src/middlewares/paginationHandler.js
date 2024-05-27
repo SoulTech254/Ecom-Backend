@@ -1,57 +1,70 @@
 export function pagination(model, query = {}) {
-    return async (req, res, next) => {
-        const page = parseInt(req.query.page) || 1;  // Default to page 1 if not provided
-        const limit = parseInt(req.query.limit) || 10;  // Default to limit 5 if not provided
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
+  return async (req, res, next) => {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 2;
+      const searchQuery = req.query.searchQuery || "";
+      const sortOption = req.query.sortOption || "newest";
 
-        const results = {};
+      const startIndex = (page - 1) * limit;
 
-        // Include the total count of the items in the collection
-        results.totalCount = await model.countDocuments(query).exec();
+      const results = {
+        metadata: {
+          page,
+          limit,
+        },
+      };
 
-        // Calculate and include the total number of pages
-        results.totalPages = Math.ceil(results.totalCount / limit);
+      const countFilter = searchQuery
+        ? { ...query, productName: { $regex: searchQuery, $options: "i" } }
+        : query;
 
-        if (endIndex < results.totalCount) {
-            results.next = {
-                page: page + 1,
-                limit: limit
-            };
-        }
+      const totalCount = await model.countDocuments(countFilter).exec();
+      results.metadata.totalCount = totalCount;
 
-        if (startIndex > 0) {
-            results.previous = {
-                page: page - 1,
-                limit: limit
-            };
-        }
+      results.metadata.totalPages = Math.ceil(totalCount / limit);
 
-        const totalCount = await model.countDocuments(query).exec();
-        if (startIndex >= totalCount) {
-            return res.status(404).json({ message: "No such page exists" });
-        }
+      if (startIndex >= totalCount) {
+        return res.status(404).json({ message: "No such page exists" });
+      }
 
-        try {
-            let searchQuery = {};
-            if (req.query.searchQuery) {
-                // If searchQuery query parameter is provided, construct the search condition for productName
-                const searchParam = req.query.searchQuery;
-                searchQuery = { productName: new RegExp(searchParam, 'i') };
-            }
-        
-            // Combine the base query with the search query if it exists
-            const finalQuery = { ...query, ...searchQuery };
-        
-            // Perform the search with the constructed query
-            results.results = await model.find(finalQuery).limit(limit).skip(startIndex).exec();
-        
-            // Attach the results to the response object
-            res.paginatedResults = results;
-            next();
-        } catch (error) {
-            res.status(500).json({ message: error.message });
-        }
-        
-    };
+      let queryBuilder = searchQuery
+        ? model.find({
+            ...query,
+            productName: { $regex: searchQuery, $options: "i" },
+          })
+        : model.find(query);
+
+      if (sortOption === "newest") {
+        queryBuilder = queryBuilder.sort({ createdAt: -1 });
+      } else if (sortOption === "oldest") {
+        queryBuilder = queryBuilder.sort({ createdAt: 1 });
+      } else if (sortOption === "bestmatch") {
+        queryBuilder = queryBuilder.sort({ productName: 1 });
+      }
+
+      queryBuilder = queryBuilder.skip(startIndex).limit(limit);
+
+      results.results = await queryBuilder.exec();
+
+      if (startIndex + limit < totalCount) {
+        results.next = {
+          page: page + 1,
+          limit,
+        };
+      }
+
+      if (startIndex > 0) {
+        results.previous = {
+          page: page - 1,
+          limit,
+        };
+      }
+
+      res.paginatedResults = results;
+      next();
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
 }
