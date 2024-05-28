@@ -9,6 +9,7 @@ export const createProduct = async (productData) => {
     if (exists) {
       throw new Error("Product already exists");
     }
+    
     const newProduct = new Product({
       ...rest,
       productName,
