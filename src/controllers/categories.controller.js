@@ -3,6 +3,7 @@ import {    createCategorie,
      } from "../services/categories.service.js";
 import { pagination } from "../middlewares/paginationHandler.js";
 import Categories from "../models/categories.models.js";
+import { categoryExists } from "../utils/products.utils.js";
 
 export const postCategorieHandler = async (req, res, next) => {
 try {
@@ -11,6 +12,16 @@ res.status(201).json({message:"cartegorie created",newCategorie:newCategorie});
 } catch (error) {
 next(error);
 }
+
+const categoryExists = async (name) => {
+  try {
+    const existingUser = await User.find({ phoneNumber: phoneNumber });
+    return !!existingUser;
+  } catch (error) {
+    console.error('Error checking user existence:', error);
+    return false; 
+  }
+};
 };
 
 export const getCategoriesPageHandler = [

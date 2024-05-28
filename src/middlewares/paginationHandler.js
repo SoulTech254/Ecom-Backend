@@ -2,7 +2,7 @@ export function pagination(model, query = {}) {
   return async (req, res, next) => {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 2;
+      const limit = parseInt(req.query.limit) || 10;
       const searchQuery = req.query.searchQuery || "";
       const sortOption = req.query.sortOption || "newest";
 

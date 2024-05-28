@@ -1,17 +1,22 @@
 import Categories from "../models/categories.models.js";
+import { categoryExists } from "../utils/products.utils.js";
 
 export const createCategorie = async (categorieData) => {
   const { level_1_name, level_2_name, ...rest } = categorieData;
 
   try {
-    const newCategorie = new Categories({
-      level_1_name,
-      level_2_name,
+    const exists = await categoryExists();
+    if (exists) {
+      throw new Error("Product already exists");
+    }
+    const newProduct = new Product({
       ...rest,
+      productName,
+      SKU,
     });
 
-    await newCategorie.save();
-    return newCategorie;
+    await newProduct.save();
+    return newProduct;
   } catch (error) {
     throw new Error(error.message);
   }
