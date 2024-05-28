@@ -1,5 +1,12 @@
-import crypto from  "crypto"
+import dotenv from 'dotenv';
 
-const secretKey = crypto.randomBytes(32).toString('hex');
+dotenv.config();
 
-export default secretKey
+const secretKey = process.env.SECRET_KEY;
+
+if (!secretKey) {
+  throw new Error('SECRET_KEY is not defined in the environment variables');
+}
+
+
+export default secretKey;

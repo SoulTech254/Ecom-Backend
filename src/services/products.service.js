@@ -23,12 +23,12 @@ export const createProduct = async (productData) => {
 };
 
 export const updateProduct = async (id, productData) => {
-  const { productName, SKU, newSKU, ...rest } = productData;
+  const { productName, SKU, ...rest } = productData;
 
   try {
     const updatedProduct = await Product.findOneAndUpdate(
       { _id: id },
-      { productName, SKU: newSKU || SKU, ...rest },
+      { productName, ...rest },
       { new: true }
     );
 

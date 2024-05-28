@@ -23,7 +23,7 @@ export const getProductsPageHandler = [
   },
 ];
 
-export const updateProductHandler = async (req, res) => {
+export const updateProductHandler = async (req, res,next) => {
   try {
     const id = req.params.id;
     const updatedProduct = await updateProduct(id, req.body);
@@ -33,7 +33,7 @@ export const updateProductHandler = async (req, res) => {
   }
 };
 
-export const deleteProductHandler = async (req, res) => {
+export const deleteProductHandler = async (req, res,next) => {
   try {
     const deletedProduct = await deleteProduct(req.body);
     res.status(200).json({ success: true, product: deletedProduct });
@@ -42,7 +42,7 @@ export const deleteProductHandler = async (req, res) => {
   }
 };
 
-export const getProductHandler = async (req, res) => {
+export const getProductHandler = async (req, res,next) => {
   try {
     const product = await Product.findById(req.params.id);
     res.status(200).json({ product });
