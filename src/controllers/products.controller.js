@@ -23,6 +23,13 @@ export const getProductsPageHandler = [
   },
 ];
 
+export const homeProductsPageHandler = [
+  pagination(Product,{},{limit:3}),
+  (req, res) => {
+    res.json(res.paginatedResults);
+  },
+];
+
 export const updateProductHandler = async (req, res,next) => {
   try {
     const id = req.params.id;
