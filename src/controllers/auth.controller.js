@@ -16,6 +16,7 @@ export const createUserHandler = async (req, res, next) => {
     if (exist) {
       throw new Error("User already exists");
     }
+    console.log(req.body);
     const newUser = await createUser(req.body);
     res.status(201).json(newUser);
   } catch (error) {

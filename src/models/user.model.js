@@ -59,6 +59,10 @@ const userSchema = new mongoose.Schema(
     agreeTerms: {
       type: Boolean,
     },
+    cart: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Cart",
+    },
   },
   { timestamps: true }
 );
