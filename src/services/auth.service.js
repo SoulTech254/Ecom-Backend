@@ -21,7 +21,7 @@ export const createUser = async (userData) => {
       });
       await newUser.save();
       await sendVerificationCode(`+254${phoneNumber}`, code);
-      const { password, verificationCode, ...user } = newUser.toObject();
+      const { password:pass, verificationCode, ...user } = newUser.toObject();
       return user;
     } else {
       throw new Error("User already Exists");

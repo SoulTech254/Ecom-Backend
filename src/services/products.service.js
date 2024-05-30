@@ -1,5 +1,7 @@
 import Product from "../models/products.models.js";
 import { productExists } from "../utils/products.utils.js";
+import Cart from '../models/cart.models.js';
+
 
 export const createProduct = async (productData) => {
   const { productName, SKU, ...rest } = productData;
@@ -66,5 +68,40 @@ export const deleteProduct = async (productData) => {
     }
   } catch (error) {
     throw new Error("Error deleting product: " + error.message);
+  }
+};
+
+
+export const addToCart = async (userId, productId, quantity = 1) => {
+  try {
+    // Check if the product exists
+    const product = await Product.findById(productId);
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Find the cart for the user
+    let cart = await Cart.findOne({ userId });
+    if (!cart) {
+      // If no cart exists for the user, create one
+      cart = new Cart({ userId, items: [] });
+    }
+
+    // Check if the product is already in the cart
+    const cartItemIndex = cart.items.findIndex(item => item.productId.toString() === productId);
+
+    if (cartItemIndex > -1) {
+      // If the product is already in the cart, update the quantity
+      cart.items[cartItemIndex].quantity += quantity;
+    } else {
+      // If the product is not in the cart, add it
+      cart.items.push({ productId, quantity });
+    }
+
+    // Save the cart
+    await cart.save();
+    return cart;
+  } catch (error) {
+    throw new Error(`Error adding product to cart: ${error.message}`);
   }
 };

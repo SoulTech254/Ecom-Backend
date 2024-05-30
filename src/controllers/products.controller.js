@@ -2,6 +2,7 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  addToCart,
 } from "../services/products.service.js";
 import { pagination } from "../middlewares/paginationHandler.js";
 import Product from "../models/products.models.js";
@@ -55,5 +56,17 @@ export const getProductHandler = async (req, res,next) => {
     res.status(200).json({ product });
   } catch (error) {
     next(error);
+  }
+};
+
+export const postCartProductsHandler =  async (req, res) => {
+  const userId = req.user.id;
+  const {productId, quantity } = req.body;
+
+  try {
+    const updatedCart = await addToCart(userId, productId, quantity);
+    res.status(200).json(updatedCart);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
