@@ -5,7 +5,5 @@ import { getCartHandler, updateCartHandler } from "../controllers/cart.controlle
 const router = express.Router();
 
 router.put("/update", updateUserHandler);
-router.get("/cart/:id", getCartHandler);
-router.post("/cart/:id", updateCartHandler);
 
 export default router;
