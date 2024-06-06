@@ -6,11 +6,11 @@ import {
 } from "../utils/verificationUtils.js";
 import bcrypt from "bcrypt";
 import { generateToken } from "../utils/userUtils.js";
-import Cart from "../models/cart.model.js";
+import Cart from "../models/cart.models.js";
 
 export const createUser = async (userData) => {
   const { password, phoneNumber, ...rest } = userData;
-  console.log(password)
+  console.log(password);
   try {
     if (userExists(phoneNumber)) {
       const hashedPassword = bcrypt.hashSync(password, 10);
@@ -26,7 +26,7 @@ export const createUser = async (userData) => {
       });
       await newUser.save();
       await sendVerificationCode(`+254${phoneNumber}`, code);
-      const { password:pass, verificationCode, ...user } = newUser.toObject();
+      const { password: pass, verificationCode, ...user } = newUser.toObject();
       return user;
     } else {
       throw new Error("User already Exists");

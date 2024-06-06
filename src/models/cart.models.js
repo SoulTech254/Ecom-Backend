@@ -17,6 +17,10 @@ const cartSchema = new mongoose.Schema(
           type: Number,
           default: 1,
         },
+        subtotal: {
+          type: Number,
+          default: 0,
+        },
       },
     ],
     totalQuantity: {
@@ -31,22 +35,26 @@ const cartSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Define a method to calculate total quantity and total amount
+// Define a method to calculate total quantity, total amount, and subtotals
 cartSchema.methods.calculateTotal = async function () {
   let totalQuantity = 0;
   let totalAmount = 0;
 
   for (const item of this.products) {
     const product = await Product.findById(item.product);
+    const productPrice = parseFloat(product.price); // Assuming price is a String, parse it to a float
+    const itemSubtotal = item.quantity * productPrice;
+
+    item.subtotal = itemSubtotal; // Update the subtotal for each item
     totalQuantity += item.quantity;
-    totalAmount += item.quantity * parseFloat(product.price); // Assuming price is a String, parse it to a float
+    totalAmount += itemSubtotal;
   }
 
   this.totalQuantity = totalQuantity;
   this.totalAmount = totalAmount;
 };
 
-// Middleware to recalculate totals before saving the cart
+// Middleware to recalculate totals and subtotals before saving the cart
 cartSchema.pre("save", async function (next) {
   await this.calculateTotal();
   next();
