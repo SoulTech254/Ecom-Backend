@@ -1,4 +1,4 @@
-export function pagination(model, query = {}, options = {}) {
+export function pagination(model, query = {}, options = {}, searchFields = []) {
   return async (req, res, next) => {
     try {
       const page = parseInt(req.query.page) || 1;
@@ -15,9 +15,18 @@ export function pagination(model, query = {}, options = {}) {
         },
       };
 
-      const countFilter = searchQuery
-        ? { ...query, productName: { $regex: searchQuery, $options: "i" } }
-        : query;
+      // Construct an array of search conditions for each specified field
+      const searchConditions = [];
+      if (searchQuery && searchFields.length > 0) {
+        searchFields.forEach(field => {
+          const condition = {};
+          condition[field] = { $regex: searchQuery, $options: "i" };
+          searchConditions.push(condition);
+        });
+      }
+
+      // Create the $or query for searching multiple fields
+      const countFilter = searchConditions.length > 0 ? { $or: searchConditions } : query;
 
       const totalCount = await model.countDocuments(countFilter).exec();
       results.metadata.totalCount = totalCount;
@@ -28,11 +37,8 @@ export function pagination(model, query = {}, options = {}) {
         return res.status(404).json({ message: "No such page exists" });
       }
 
-      let queryBuilder = searchQuery
-        ? model.find({
-            ...query,
-            productName: { $regex: searchQuery, $options: "i" },
-          })
+      let queryBuilder = searchConditions.length > 0
+        ? model.find({ $or: searchConditions })
         : model.find(query);
 
       if (sortOption === "newest") {
@@ -40,6 +46,7 @@ export function pagination(model, query = {}, options = {}) {
       } else if (sortOption === "oldest") {
         queryBuilder = queryBuilder.sort({ createdAt: 1 });
       } else if (sortOption === "bestmatch") {
+        // Example sorting for demonstration, modify as needed
         queryBuilder = queryBuilder.sort({ productName: 1 });
       }
 

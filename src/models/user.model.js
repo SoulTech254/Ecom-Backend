@@ -24,19 +24,15 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required:true,
+      required: true,
     },
     defaultAddress: {
       type: String,
     },
     addresses: [
       {
-        street: {
-          type: String,
-        },
-        city: {
-          type: String,
-        },
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Address",
       },
     ],
     defaultPayment: {

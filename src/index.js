@@ -6,10 +6,13 @@ import authRoutes from "./routes/auth.route.js";
 import bodyParser from "body-parser";
 import productRoutes from "./routes/products.routes.js";
 import cartRoutes from "./routes/cart.route.js";
+import admUserRoutes from "./routes/admUser.route.js";
 import homeRoutes from "./routes/home.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 import superAdminRoutes from "./routes/superAdmin.routes.js";
+import addressRoutes from "./routes/address.routes.js";
 import cors from "cors";
-
+import Product from "./models/products.models.js";
 const app = express();
 const corsOptions = {
   origin: "*",
@@ -39,9 +42,12 @@ app.listen(PORT, () => {
 app.use("/api/v1/user/", userRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin/products", productRoutes);
+app.use("/api/v1/admin/users", admUserRoutes);
 app.use("/api/v1/superAdmin", superAdminRoutes);
 app.use("/api/v1/products", homeRoutes);
 app.use("/api/v1/cart", cartRoutes);
+app.use("/api/v1/payment", paymentRoutes);
+app.use("/api/v1/addresses", addressRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;

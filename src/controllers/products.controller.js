@@ -18,20 +18,20 @@ export const postProductHandler = async (req, res, next) => {
 };
 
 export const getProductsPageHandler = [
-  pagination(Product),
+  pagination(Product, {}, {}, ["productName", "SKU"]),
   (req, res) => {
     res.json(res.paginatedResults);
   },
 ];
 
 export const homeProductsPageHandler = [
-  pagination(Product,{},{limit:3}),
+  pagination(Product, {}, { limit: 3 }),
   (req, res) => {
     res.json(res.paginatedResults);
   },
 ];
 
-export const updateProductHandler = async (req, res,next) => {
+export const updateProductHandler = async (req, res, next) => {
   try {
     const id = req.params.id;
     const updatedProduct = await updateProduct(id, req.body);
@@ -41,7 +41,7 @@ export const updateProductHandler = async (req, res,next) => {
   }
 };
 
-export const deleteProductHandler = async (req, res,next) => {
+export const deleteProductHandler = async (req, res, next) => {
   try {
     const deletedProduct = await deleteProduct(req.body);
     res.status(200).json({ success: true, product: deletedProduct });
@@ -50,7 +50,7 @@ export const deleteProductHandler = async (req, res,next) => {
   }
 };
 
-export const getProductHandler = async (req, res,next) => {
+export const getProductHandler = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     res.status(200).json({ product });
@@ -59,9 +59,9 @@ export const getProductHandler = async (req, res,next) => {
   }
 };
 
-export const postCartProductsHandler =  async (req, res) => {
+export const postCartProductsHandler = async (req, res) => {
   const userId = req.user.id;
-  const {productId, quantity } = req.body;
+  const { productId, quantity } = req.body;
 
   try {
     const updatedCart = await addToCart(userId, productId, quantity);
