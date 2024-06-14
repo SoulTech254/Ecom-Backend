@@ -10,6 +10,7 @@ import admUserRoutes from "./routes/admUser.route.js";
 import homeRoutes from "./routes/home.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import superAdminRoutes from "./routes/superAdmin.routes.js";
+import checkoutRoutes from "./routes/checkout.routes.js";
 import addressRoutes from "./routes/address.routes.js";
 import cors from "cors";
 import Product from "./models/products.models.js";
@@ -48,6 +49,7 @@ app.use("/api/v1/products", homeRoutes);
 app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/addresses", addressRoutes);
+app.use("/api/v1/checkout", checkoutRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;

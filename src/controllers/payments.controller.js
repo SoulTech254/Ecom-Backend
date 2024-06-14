@@ -1,12 +1,38 @@
-import { mpesaPayment } from "../services/payment.services.js";
+import Payment from "../models/payment.model.js";
+import { handleMpesaPayment, updatePayment } from "../services/payment.services.js";
 import { getAccessToken } from "../utils/payment.utils.js";
-import WebSocket from 'ws';
 
 export const mpesaPaymentHandler = async (req, res, next) => {
   try {
-    const { phoneNumber, amount } = req.body;
-    console.log(phoneNumber, amount);
-    const results = await mpesaPayment(phoneNumber, amount);
+    const {
+      user,
+      products,
+      deliveryAddress,
+      deliveryMethod,
+      deliverySlot,
+      totalQuantity,
+      totalAmount,
+      paymentAccount,
+    } = req.body;
+    console.log(req.body);
+    const newOrder = {
+      user: user.id,
+      products: products.map((product) => product.id),
+      delivery : {
+        address: deliveryAddress.id,
+        deliverySlot,
+        method: deliveryMethod
+      },
+      totalQuantity,
+      totalAmount,
+      status: "pending",
+    };
+    console.log(newOrder, paymentAccount, totalAmount);
+    const results = await handleMpesaPayment(
+      newOrder,
+      paymentAccount,
+      totalAmount
+    );
     res.json(results);
   } catch (error) {
     next(error);
@@ -14,8 +40,24 @@ export const mpesaPaymentHandler = async (req, res, next) => {
 };
 
 export const callBackHandler = async (req, res, next) => {
-  const callbackData = req.body;
-  console.log(callbackData);
+  const {
+    Body: {
+      stkCallback: {
+        MerchantRequestID,
+        ResultCode,
+        CallbackMetadata: { Item },
+      },
+    },
+  } = req.body;
+  const MpesaReceiptNumber = Item.find(
+    (item) => item.Name === "MpesaReceiptNumber"
+  ).Value;
+
+  const updatedPayment = await updatePayment(
+    MerchantRequestID,
+    ResultCode,
+    MpesaReceiptNumber
+  );
 };
 
 export const registerURLHandler = async (req, res, next) => {
@@ -43,5 +85,15 @@ export const registerURLHandler = async (req, res, next) => {
   } catch (error) {
     console.error("Error registering URL:", error);
     res.status(500).send("❌ Request failed");
+  }
+};
+
+export const getPaymentHandler = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const payment = await Payment.findById(id);
+    res.status(200).json(payment);
+  } catch (error) {
+    next(error);
   }
 };
