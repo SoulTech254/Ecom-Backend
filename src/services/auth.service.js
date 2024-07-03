@@ -10,27 +10,46 @@ import Cart from "../models/cart.models.js";
 
 export const createUser = async (userData) => {
   const { password, phoneNumber, ...rest } = userData;
-  console.log(password);
+
   try {
-    if (userExists(phoneNumber)) {
-      const hashedPassword = bcrypt.hashSync(password, 10);
-      const code = generateVerificationCode();
-      const cart = new Cart({ user: rest._id });
-      await cart.save();
-      const newUser = new User({
-        ...rest,
-        password: hashedPassword,
-        phoneNumber,
-        verificationCode: code,
-        cart: cart._id,
-      });
-      await newUser.save();
-      await sendVerificationCode(`+254${phoneNumber}`, code);
-      const { password: pass, verificationCode, ...user } = newUser.toObject();
-      return user;
-    } else {
-      throw new Error("User already Exists");
+    // Check if user already exists
+    const existingUser = await User.findOne({ phoneNumber });
+    if (existingUser) {
+      throw new Error("User already exists");
     }
+
+    // Hash password and generate verification code
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    const verificationCode = generateVerificationCode();
+
+    // Create a new cart for the user
+    const cart = new Cart();
+    await cart.save();
+
+    // Create and save the new user with hashed password and cart reference
+    const newUser = new User({
+      ...rest,
+      password: hashedPassword,
+      phoneNumber,
+      verificationCode,
+      cart: cart._id, // Assign cart _id to user's cart field
+    });
+    await newUser.save();
+
+    // Update the cart with the user reference
+    cart.user = newUser._id; // Set the user reference in the cart
+    await cart.save();
+
+    // Send verification code to user's phone number
+    await sendVerificationCode(`+254${phoneNumber}`, verificationCode);
+
+    // Omit sensitive fields from returned user object
+    const {
+      password: pass,
+      verificationCode: code,
+      ...user
+    } = newUser.toObject();
+    return user;
   } catch (error) {
     throw new Error(error.message);
   }

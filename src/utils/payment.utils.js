@@ -37,3 +37,20 @@ export const getTimestamp = () => {
 
   return `${year}${month}${day}${hours}${minutes}${seconds}`;
 };
+
+
+export const mockFetch = async (url, options) => {
+  // Simulated response data
+  const mockResponseData = {
+    MerchantRequestID: "12345-67890-12345",
+    CheckoutRequestID: "ws_CO_1234567890",
+    ResponseCode: "0",
+    ResponseDescription: "Success. Request accepted for processing",
+    CustomerMessage: "Success. Request accepted for processing",
+  };
+
+  return {
+    ok: true,
+    json: async () => mockResponseData,
+  };
+};

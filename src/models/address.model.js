@@ -10,6 +10,15 @@ const addressSchema = new mongoose.Schema({
     address: {
       type: String,
     },
+    building: {
+      type: String,
+    },
+    city:{
+      type: String
+    },
+    apartment:{
+      type: String
+    },
     contactNumber: {
       type: String,
       required: true,

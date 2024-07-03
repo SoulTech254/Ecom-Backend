@@ -1,5 +1,10 @@
+import Cart from "../models/cart.models.js";
 import Payment from "../models/payment.model.js";
-import { handleMpesaPayment, updatePayment } from "../services/payment.services.js";
+import User from "../models/user.model.js";
+import {
+  handleMpesaPayment,
+  updatePayment,
+} from "../services/payment.services.js";
 import { getAccessToken } from "../utils/payment.utils.js";
 
 export const mpesaPaymentHandler = async (req, res, next) => {
@@ -14,25 +19,41 @@ export const mpesaPaymentHandler = async (req, res, next) => {
       totalAmount,
       paymentAccount,
     } = req.body;
-    console.log(req.body);
+
+    console.log("Order Summary", req.body);
+
+    // Create a new order
     const newOrder = {
       user: user.id,
       products: products.map((product) => product.id),
-      delivery : {
+      delivery: {
         address: deliveryAddress.id,
         deliverySlot,
-        method: deliveryMethod
+        method: deliveryMethod,
       },
       totalQuantity,
       totalAmount,
       status: "pending",
     };
-    console.log(newOrder, paymentAccount, totalAmount);
+
+    console.log("New Order:", newOrder);
+
+    // Handle M-Pesa payment
     const results = await handleMpesaPayment(
       newOrder,
       paymentAccount,
       totalAmount
     );
+
+    console.log("UserID", user.id);
+    
+    const cart = await Cart.findOneAndUpdate(
+      { user: user.id },
+      { $set: { products: [], totalQuantity: 0, totalAmount: 0 } },
+      { new: true } // Ensure to return the updated document
+    );
+
+    console.log("cart: ", cart);
     res.json(results);
   } catch (error) {
     next(error);
@@ -40,6 +61,8 @@ export const mpesaPaymentHandler = async (req, res, next) => {
 };
 
 export const callBackHandler = async (req, res, next) => {
+  console.log("Inside callBackHandler");
+  console.log("req.body: ", req.body);
   const {
     Body: {
       stkCallback: {
@@ -49,15 +72,22 @@ export const callBackHandler = async (req, res, next) => {
       },
     },
   } = req.body;
+  console.log("MerchantRequestID: ", MerchantRequestID);
+  console.log("ResultCode: ", ResultCode);
+  console.log("Item: ", Item);
   const MpesaReceiptNumber = Item.find(
     (item) => item.Name === "MpesaReceiptNumber"
   ).Value;
+  console.log("MpesaReceiptNumber: ", MpesaReceiptNumber);
 
   const updatedPayment = await updatePayment(
     MerchantRequestID,
     ResultCode,
     MpesaReceiptNumber
   );
+  console.log("updatedPayment: ", updatedPayment);
+
+  return updatedPayment;
 };
 
 export const registerURLHandler = async (req, res, next) => {
@@ -84,15 +114,43 @@ export const registerURLHandler = async (req, res, next) => {
     res.status(200).json(response.data);
   } catch (error) {
     console.error("Error registering URL:", error);
-    res.status(500).send("❌ Request failed");
+    next(error);
   }
 };
 
 export const getPaymentHandler = async (req, res, next) => {
+  const { id } = req.params;
+
   try {
-    const { id } = req.params;
+    // Find payment by ID
     const payment = await Payment.findById(id);
-    res.status(200).json(payment);
+
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found" });
+    }
+
+    // Determine response based on payment status
+    let message = "";
+
+    console.log(payment.paymentStatus);
+
+    switch (payment.paymentStatus) {
+      case "success":
+        message = "Payment successful";
+        break;
+      case "failed":
+        message = "Payment failed";
+        break;
+      case "pending":
+        message = "Payment pending";
+        break;
+      default:
+        message = "Unknown payment status";
+        break;
+    }
+
+    // Send response
+    res.status(200).json({ message });
   } catch (error) {
     next(error);
   }

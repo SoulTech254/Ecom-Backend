@@ -70,17 +70,36 @@ export const updateCart = async (id, productId, quantity) => {
 
 export const mergeCart = async (id, products) => {
   try {
+    console.log("Merging cart with ID:", id);
     const cart = await Cart.findById(id);
     if (!cart) {
+      console.error("Cart not found");
       throw new Error("Cart not found");
     }
 
-    cart.products.push(...products);
+    // Loop through the products array
+    for (const { product, quantity } of products) {
+      // Check if the product is already in the cart
+      const existingProduct = cart.products.find(
+        (item) => item.product.toString() === product.toString()
+      );
+
+      if (existingProduct) {
+        // If product exists, update its quantity
+        existingProduct.quantity += quantity;
+      } else {
+        // If product doesn't exist, push it to the cart
+        cart.products.push({ product, quantity });
+      }
+    }
+
+    // Save the updated cart
     await cart.save();
 
+    console.log("Cart merged successfully:", cart);
     return cart;
   } catch (error) {
-    console.error(error);
+    console.error("Error merging cart:", error);
     throw new Error("Error merging cart");
   }
 };

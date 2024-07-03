@@ -1,6 +1,6 @@
 import Order from "../models/order.model.js";
 import Payment from "../models/payment.model.js";
-import { getAccessToken, getTimestamp } from "../utils/payment.utils.js";
+import { getAccessToken, getTimestamp, mockFetch } from "../utils/payment.utils.js";
 import moment from "moment";
 
 export const handleMpesaPayment = async (orderDetails, phoneNumber, amount) => {
@@ -22,7 +22,29 @@ export const handleMpesaPayment = async (orderDetails, phoneNumber, amount) => {
     ).toString("base64");
 
     console.log("Password: ", password);
-    const response = await fetch(url, {
+    // const response = await fetch(url, {
+    //   method: "POST",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     Authorization: auth,
+    //   },
+    //   body: JSON.stringify({
+    //     BusinessShortCode: 174379,
+    //     Password: password,
+    //     Timestamp: timestamp,
+    //     TransactionType: "CustomerBuyGoodsOnline",
+    //     Amount: amount,
+    //     PartyA: phoneNumber,
+    //     PartyB: 174379,
+    //     PhoneNumber: phoneNumber,
+    //     CallBackURL:
+    //       "https://8f09-102-0-7-6.ngrok-free.app/api/v1/payment/mpesa/callback",
+    //     AccountReference: "CompanyXLTD",
+    //     TransactionDesc: "Mpesa Daraja API stk push test",
+    //   }),
+    // });
+
+    const response = await mockFetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -81,9 +103,14 @@ export const updatePayment = async (
   MpesaReceiptNumber
 ) => {
   try {
-    console.log(ResultCode);
+    console.log("Updating payment...");
+    console.log("MerchantRequestID: ", MerchantRequestID);
+    console.log("ResultCode: ", ResultCode);
+    console.log("MpesaReceiptNumber: ", MpesaReceiptNumber);
+
     const payment = await Payment.findOne({ merchantId: MerchantRequestID });
     if (!payment) {
+      console.log("Payment not found");
       throw new Error("Payment not found");
     }
 
@@ -91,12 +118,16 @@ export const updatePayment = async (
 
     if (ResultCode === 0) {
       payment.transactionID = MpesaReceiptNumber;
-      //Send Email
+      console.log("Updated payment transactionID: ", payment.transactionID);
+      // Send Email
     }
+
     await payment.save();
+    console.log("Payment updated successfully");
+    console.log("Updated payment: ", payment);
     return payment;
   } catch (error) {
-    console.error(error);
+    console.error("Error updating payment: ", error);
     throw new Error(error);
   }
 };

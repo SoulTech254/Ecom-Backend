@@ -31,10 +31,14 @@ export const updateCartHandler = async (req, res, next) => {
 
 export const mergeCartHandler = async (req, res, next) => {
   try {
+    console.log("body", req.body)
+    console.log('Merging cart', req.params.id, req.body);
     const id = req.params.id;
-    const updatedCart = await mergeCart(id, req.body.productID);
+    const updatedCart = await mergeCart(id, req.body);
+    console.log('Cart merged', updatedCart);
     res.status(200).json(updatedCart);
   } catch (error) {
+    console.error('Error merging cart', error);
     next(error);
   }
 };

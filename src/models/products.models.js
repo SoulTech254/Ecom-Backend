@@ -36,7 +36,7 @@ const productsSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    discount: {
+    discountPrice: {
       type: String,
     },
     noOfUnits: {
