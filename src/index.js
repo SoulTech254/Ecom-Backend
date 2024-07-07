@@ -12,8 +12,10 @@ import paymentRoutes from "./routes/payment.routes.js";
 import superAdminRoutes from "./routes/superAdmin.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
 import addressRoutes from "./routes/address.routes.js";
+import branchRoutes from "./routes/branch.routes.js";
+import Stock from "./models/stocks.model.js";
 import cors from "cors";
-import Product from "./models/products.models.js";
+
 const app = express();
 const corsOptions = {
   origin: "*",
@@ -50,6 +52,31 @@ app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/addresses", addressRoutes);
 app.use("/api/v1/checkout", checkoutRoutes);
+app.use("/api/v1/branch", branchRoutes);
+app.post("/api/stocks", async (req, res, next) => {
+  try {
+    console.log("Received request to add stock level");
+    const { productId, branchId, stockLevel } = req.body;
+
+    // Validate and create the stock entry
+    console.log("Validating and creating the stock entry");
+    const stock = await Stock.create({
+      productId,
+      branchId,
+      stockLevel,
+    });
+
+    console.log("Stock level added successfully");
+    res.status(201).json({
+      success: true,
+      message: "Stock level added successfully",
+      data: stock,
+    });
+  } catch (err) {
+    console.log("Error occurred while adding stock level:", err);
+    next(err);
+  }
+});
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;

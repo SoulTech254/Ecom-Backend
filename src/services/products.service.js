@@ -1,7 +1,8 @@
 import Product from "../models/products.models.js";
 import { productExists } from "../utils/products.utils.js";
-import Cart from '../models/cart.models.js';
-
+import Cart from "../models/cart.models.js";
+import mongoose from "mongoose";
+const ObjectId = mongoose.Types.ObjectId;
 
 export const createProduct = async (productData) => {
   const { productName, SKU, ...rest } = productData;
@@ -11,7 +12,7 @@ export const createProduct = async (productData) => {
     if (exists) {
       throw new Error("Product already exists");
     }
-    
+
     const newProduct = new Product({
       ...rest,
       productName,
@@ -72,13 +73,12 @@ export const deleteProduct = async (productData) => {
   }
 };
 
-
 export const addToCart = async (userId, productId, quantity = 1) => {
   try {
     // Check if the product exists
     const product = await Product.findById(productId);
     if (!product) {
-      throw new Error('Product not found');
+      throw new Error("Product not found");
     }
 
     // Find the cart for the user
@@ -89,7 +89,9 @@ export const addToCart = async (userId, productId, quantity = 1) => {
     }
 
     // Check if the product is already in the cart
-    const cartItemIndex = cart.items.findIndex(item => item.productId.toString() === productId);
+    const cartItemIndex = cart.items.findIndex(
+      (item) => item.productId.toString() === productId
+    );
 
     if (cartItemIndex > -1) {
       // If the product is already in the cart, update the quantity
@@ -104,5 +106,84 @@ export const addToCart = async (userId, productId, quantity = 1) => {
     return cart;
   } catch (error) {
     throw new Error(`Error adding product to cart: ${error.message}`);
+  }
+};
+
+export const getProduct = async (productId, branchId) => {
+  try {
+    // Validate product ID
+    if (!ObjectId.isValid(productId)) {
+      throw new Error("Invalid product ID");
+    }
+
+    // Validate branch ID
+    if (!ObjectId.isValid(branchId)) {
+      throw new Error("Invalid branch ID");
+    }
+
+    // Convert string IDs to ObjectId
+    const productObjectId = ObjectId.createFromHexString(productId);
+    const branchObjectId = ObjectId.createFromHexString(branchId);
+
+    // Aggregate pipeline to fetch product with stock level for a specific branch
+    const pipeline = [
+      {
+        $match: {
+          _id: productObjectId, // Use the converted `productObjectId`
+        },
+      },
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "_id",
+          foreignField: "productId",
+          as: "stockEntries",
+        },
+      },
+      {
+        $addFields: {
+          stockLevel: {
+            $first: {
+              $filter: {
+                input: "$stockEntries",
+                as: "stock",
+                cond: { $eq: ["$$stock.branchId", branchObjectId] },
+              },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          stockLevel: { $ifNull: ["$stockLevel.stockLevel", 0] },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          productName: 1,
+          images: 1,
+          category: 1,
+          brand: 1,
+          price: 1,
+          stockLevel: 1,
+          stockEntries: 1, // Optional, include if needed
+          // Exclude debug fields
+        },
+      },
+    ];
+
+    console.log("Executing aggregation pipeline:");
+    console.log(JSON.stringify(pipeline, null, 2));
+
+    const result = await Product.aggregate(pipeline);
+
+    console.log("Aggregation pipeline result:");
+    console.log(JSON.stringify(result, null, 2));
+
+    return result[0];
+  } catch (error) {
+    console.error("Error getting product:", error);
+    throw new Error("Error getting product!");
   }
 };

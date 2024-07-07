@@ -3,9 +3,11 @@ import {
   updateProduct,
   deleteProduct,
   addToCart,
+  getProduct,
 } from "../services/products.service.js";
 import { pagination } from "../middlewares/paginationHandler.js";
 import Product from "../models/products.models.js";
+import { getProductsWithStockLevels } from "../utils/stockLevels.js";
 export const postProductHandler = async (req, res, next) => {
   try {
     const newProduct = await createProduct(req.body);
@@ -24,12 +26,22 @@ export const getProductsPageHandler = [
   },
 ];
 
-export const homeProductsPageHandler = [
-  pagination(Product, {}, { limit: 3 }),
-  (req, res) => {
-    res.json(res.paginatedResults);
-  },
-];
+export const homeProductsPageHandler = async (req, res, next) => {
+  const { branchId } = req.query;
+  try {
+    const products = await getProductsWithStockLevels(
+      branchId,
+      {},
+      "productName",
+      1,
+      19
+    );
+
+    res.json(products);
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const updateProductHandler = async (req, res, next) => {
   try {
@@ -52,8 +64,11 @@ export const deleteProductHandler = async (req, res, next) => {
 
 export const getProductHandler = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
-    res.status(200).json({ product });
+    const { id } = req.params;
+    const { branchName } = req.query;
+    console.log(id, branchName);
+    const product = await getProduct(id, branchName);
+    res.status(200).json(product);
   } catch (error) {
     next(error);
   }
@@ -62,7 +77,6 @@ export const getProductHandler = async (req, res, next) => {
 export const postCartProductsHandler = async (req, res) => {
   const userId = req.user.id;
   const { productId, quantity } = req.body;
-
   try {
     const updatedCart = await addToCart(userId, productId, quantity);
     res.status(200).json(updatedCart);
