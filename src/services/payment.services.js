@@ -1,12 +1,17 @@
 import Order from "../models/order.model.js";
 import Payment from "../models/payment.model.js";
-import { getAccessToken, getTimestamp, mockFetch } from "../utils/payment.utils.js";
+import { generateOrderId, getAccessToken, getTimestamp, mockFetch } from "../utils/payment.utils.js";
 import moment from "moment";
 
 export const handleMpesaPayment = async (orderDetails, phoneNumber, amount) => {
   try {
     console.log("Starting M-Pesa payment");
-    const order = new Order(orderDetails);
+    const orderId = generateOrderId();
+
+    const order = new Order({
+      ...orderDetails,
+      orderId: orderId
+    });
     console.log("Order created: ", order);
     const token = await getAccessToken();
     console.log("Access token: ", token);

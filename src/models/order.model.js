@@ -1,6 +1,7 @@
+// models/order.js
+
 import mongoose from "mongoose";
 
-// Define the Order schema
 const orderSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -21,6 +22,11 @@ const orderSchema = new mongoose.Schema({
     deliverySlot  : {
       type: String,
     }
+  },
+  orderId:{
+    type: String,
+    required: true,
+    unique: true,
   },
   products: [
     {
@@ -50,7 +56,6 @@ const orderSchema = new mongoose.Schema({
   // Add other fields related to the order
 });
 
-// Define the Order model
 const Order = mongoose.model("Order", orderSchema);
 
-export default Order
+export default Order;
