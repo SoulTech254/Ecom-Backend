@@ -9,7 +9,7 @@ export const getBranchesHandler = async (req, res, next) => {
       return []; // Return empty array if no branches found
     }
 
-    console.log("Formatting branches...");
+    console.log("Formatting branches...");  
     const formattedBranches = branches.map((branch) => ({
       label: branch.name,
       value: branch.name, 
