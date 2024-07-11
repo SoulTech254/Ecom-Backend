@@ -19,6 +19,8 @@ export const getProductsWithStockLevels = async (
     if (!ObjectId.isValid(branchId)) {
       console.error("Invalid branch ID:", branchId);
       throw new Error("Invalid branch ID");
+    }else{
+      console.log("Branch entered", branchId)
     }
 
     const branchObjectId = new ObjectId(branchId);

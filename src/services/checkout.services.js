@@ -52,5 +52,5 @@ export const initiateCheckout = async ({ cart, delivery, payment, user }) => {
 export const createOrder = async ({ order }) => {
   const orderDocument = new Order(order);
   await orderDocument.save();
-  return orderDocument;
+  return orderDocument;;
 };
