@@ -86,6 +86,7 @@ export const addStockController = async (req, res) => {
 };
 
 // Update an existing stock entry
+
 export const updateStockController = async (req, res) => {
   try {
     const { id } = req.params;
@@ -96,9 +97,11 @@ export const updateStockController = async (req, res) => {
       return res.status(400).json({ message: "Invalid stock ID" });
     }
 
+    const stockObjectId = new mongoose.Types.ObjectId(id);
+
     // Find and update stock entry
     const updatedStock = await Stock.findByIdAndUpdate(
-      id,
+      stockObjectId,
       { stockLevel },
       { new: true }
     );
@@ -113,6 +116,7 @@ export const updateStockController = async (req, res) => {
     res.status(500).json({ message: "Error updating stock" });
   }
 };
+
 
 // Delete a stock entry
 export const deleteStockController = async (req, res) => {
