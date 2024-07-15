@@ -8,6 +8,7 @@ export const handleMpesaPayment = async (orderDetails, phoneNumber, amount) => {
     console.log("Starting M-Pesa payment");
     const orderId = generateOrderId();
 
+    console.log("Order Details", orderDetails)
     const order = new Order({
       ...orderDetails,
       orderId: orderId

@@ -38,7 +38,6 @@ export const getTimestamp = () => {
   return `${year}${month}${day}${hours}${minutes}${seconds}`;
 };
 
-
 export const mockFetch = async (url, options) => {
   // Simulated response data
   const mockResponseData = {
@@ -57,13 +56,12 @@ export const mockFetch = async (url, options) => {
 
 // Function to generate a unique order ID starting with "ord"
 export const generateOrderId = () => {
-  const timestamp = new Date().toISOString().replace(/\D/g, '').substr(0, 10); // YYYYMMDD
-  const random = Math.random().toString(36).substr(2, 7); // Generate 7-character random string
+  const timestamp = new Date().toISOString().replace(/\D/g, "").substr(0, 5);
+  const random = Math.random().toString(36).substr(2, 5);
 
-  return `ORD${timestamp}${random}`.substr(0, 9); // Ensure total length is 9 characters
+  return `ORD${timestamp}${random}`;
 };
 
 // Example usage
 const orderId = generateOrderId();
 console.log(orderId); // Example output: 'ord20240708bhsP5Xz'
-

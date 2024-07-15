@@ -18,14 +18,19 @@ export const mpesaPaymentHandler = async (req, res, next) => {
       totalQuantity,
       totalAmount,
       paymentAccount,
+      branch
     } = req.body;
 
-    console.log("Order Summary", req.body);
+
+    console.log("deliveryAddress: ", deliveryAddress)
 
     // Create a new order
     const newOrder = {
       user: user.id,
-      products: products.map((product) => product.id),
+      products: products.map(product => ({
+        id: product.id,
+        quantity: product.quantity
+      })),
       delivery: {
         address: deliveryAddress.id,
         deliverySlot,
@@ -34,7 +39,9 @@ export const mpesaPaymentHandler = async (req, res, next) => {
       totalQuantity,
       totalAmount,
       status: "pending",
+      branch:branch
     };
+
 
     console.log("New Order:", newOrder);
 

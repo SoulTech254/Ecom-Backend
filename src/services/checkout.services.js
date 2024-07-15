@@ -1,7 +1,7 @@
 import Address from "../models/address.model.js";
 import Cart from "../models/cart.models.js";
 import User from "../models/user.model.js";
-export const initiateCheckout = async ({ cart, delivery, payment, user }) => {
+export const initiateCheckout = async ({ cart, delivery, payment, user, branch }) => {
   const cartDocument = await Cart.findById(cart)
     .populate("products.product")
     .exec();
@@ -41,6 +41,7 @@ export const initiateCheckout = async ({ cart, delivery, payment, user }) => {
     totalAmount: cartDocument.totalAmount - cartDocument.totalSavings,
     paymentMethod: payment.paymentMethod,
     paymentAccount: payment.paymentAccount,
+    branch: branch
   };
 
   console.log("Order summary:", orderSummary);

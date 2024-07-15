@@ -4,7 +4,7 @@ import { getOrdersByUserIdController,getAllOrdersController } from "../controlle
 const router = express.Router();
 
 // Route to get orders by user ID
-router.get("/users/orders", getOrdersByUserIdController);
+router.get("/user/orders", getOrdersByUserIdController);
 router.get('/allOrders', getAllOrdersController);
 
 export default router;

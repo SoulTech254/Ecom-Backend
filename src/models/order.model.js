@@ -1,60 +1,73 @@
-// models/order.js
-
 import mongoose from "mongoose";
 
-const orderSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
-  delivery: {
-    address: {
+const orderSchema = new mongoose.Schema(
+  {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "address",
+      ref: "User",
       required: true,
     },
-    method: {
-      type: String,
-      enum: ["express", "pick-up", "normal"],
-      required: true,
+    delivery: {
+      address: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Address",
+        required: true,
+      },
+      method: {
+        type: String,
+        enum: ["express", "pick-up", "normal"],
+        required: true,
+      },
+      deliverySlot: {
+        type: String,
+      },
     },
-    deliverySlot  : {
+    orderId: {
       type: String,
-    }
-  },
-  orderId:{
-    type: String,
-    required: true,
-    unique: true,
-  },
-  products: [
-    {
+      required: true,
+      unique: true,
+    },
+    products: [
+      {
+        id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
+    branch: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
+      ref: "Branch",
       required: true,
     },
-  ],
-  totalQuantity: {
-    type: Number,
-    required: true,
+    totalQuantity: {
+      type: Number,
+      required: true,
+    },
+    totalAmount: {
+      type: Number,
+      required: true,
+    },
+    payment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "onRoute", "Delivered", "Cancelled"],
+      default: "pending",
+    },
   },
-  totalAmount: {
-    type: Number,
-    required: true,
-  },
-  payment: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Payment",
-    required: true,
-  },
-  status: {
-    type: String,
-    enum: ["pending", "completed", "shipped", "cancelled"],
-    default: "pending",
-  },
-  // Add other fields related to the order
-});
+  {
+    timestamps: true, // This option will add createdAt and updatedAt fields automatically
+  }
+);
 
 const Order = mongoose.model("Order", orderSchema);
 
