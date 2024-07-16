@@ -11,13 +11,14 @@ export const getAllOrders = async () => {
 };
 
 export const findOrders = async (userId, status) => {
+  console.log(userId, status)
   try {
     // Initialize query to find orders by user ID
     let query = { user: userId };
 
     query.status = status;
 
-    const orders = await Order.find({})
+    const orders = await Order.find(query)
       .populate({
         path: "products.id",
         model: "Product",
@@ -31,7 +32,6 @@ export const findOrders = async (userId, status) => {
         select: "name address",
       })
       .exec();
-    console.log("Orders found for user and status:", orders);
     return orders;
   } catch (error) {
     throw error; // Re-throw the error for handling in the controller

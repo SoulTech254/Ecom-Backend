@@ -1,6 +1,6 @@
-import Order from '../models/order.model.js';
-import { getAllOrders, findOrdersByUserId } from '../services/orders.services.js';
-import { pagination } from '../middlewares/paginationHandler.js';
+import Order from "../models/order.model.js";
+import { getAllOrders, findOrders } from "../services/orders.services.js";
+import { pagination } from "../middlewares/paginationHandler.js";
 
 // Controller to get all orders with pagination and status filter
 // controllers/orders.controller.js
@@ -41,7 +41,8 @@ export const getAllOrdersController = async (req, res) => {
       searchConditions.push({ "delivery.method": methodRegex });
     }
 
-    const countFilter = searchConditions.length > 0 ? { $and: searchConditions } : {};
+    const countFilter =
+      searchConditions.length > 0 ? { $and: searchConditions } : {};
 
     const totalCount = await Order.countDocuments(countFilter).exec();
     results.metadata.totalCount = totalCount;
@@ -51,9 +52,10 @@ export const getAllOrdersController = async (req, res) => {
       return res.status(404).json({ message: "No such page exists" });
     }
 
-    let queryBuilder = searchConditions.length > 0
-      ? Order.find({ $and: searchConditions })
-      : Order.find({});
+    let queryBuilder =
+      searchConditions.length > 0
+        ? Order.find({ $and: searchConditions })
+        : Order.find({});
 
     if (sortOption === "newest") {
       queryBuilder = queryBuilder.sort({ createdAt: -1 });
@@ -84,37 +86,21 @@ export const getAllOrdersController = async (req, res) => {
 
     res.status(200).json(results);
   } catch (error) {
-    console.error('Error retrieving orders:', error);
-    res.status(500).json({ message: 'Error retrieving orders.' });
+    console.error("Error retrieving orders:", error);
+    res.status(500).json({ message: "Error retrieving orders." });
   }
 };
-
 
 // Controller to get orders by userId with pagination and status filter
 export const getOrdersByUserIdController = async (req, res) => {
   try {
     const userId = req.query.userId;
     const status = req.query.status;
-
-    const query = {};
-    if (userId) {
-      query.user = userId;
-    }
-    if (status) {
-      query.status = status;
-    }
-
-    const orders = res.paginatedResults;
+    const orders = await findOrders(userId, status);
+    console.log(orders)
     res.status(200).json(orders);
   } catch (error) {
-    console.error('Error retrieving orders:', error);
-    res.status(500).json({ message: 'Error retrieving orders.' });
+    console.error("Error retrieving orders:", error);
+    res.status(500).json({ message: "Error retrieving orders." });
   }
 };
-
-// Applying pagination middleware to the routes
-
-export const getOrdersByUserId = [
-  pagination(Order, {}, { limit: 10 }, ['user', 'status']),
-  getOrdersByUserIdController,
-];
