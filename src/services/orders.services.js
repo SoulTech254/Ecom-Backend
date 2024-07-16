@@ -33,3 +33,16 @@ export const getAllOrders = async () => {
     }
   };
   
+  // src/services/orderService.js
+
+
+export const updateOrderStatusByUser = async (userId, newStatus) => {
+  const filter = { user: userId };
+  console.log('Service - Filter:', JSON.stringify(filter, null, 2));
+  console.log('Service - New Status:', newStatus);
+
+  const result = await Order.updateMany(filter, { $set: { status: newStatus } });
+  
+  console.log('Service - Update Result:', result);
+  return result;
+};
