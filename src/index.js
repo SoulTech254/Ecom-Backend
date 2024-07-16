@@ -13,7 +13,7 @@ import superAdminRoutes from "./routes/superAdmin.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
 import addressRoutes from "./routes/address.routes.js";
 import branchRoutes from "./routes/branch.routes.js";
-import userOrders from "./routes/orders.routes.js"
+import orderRoutes from "./routes/orders.routes.js";
 import Stock from "./models/stocks.model.js";
 import cors from "cors";
 
@@ -54,7 +54,7 @@ app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/addresses", addressRoutes);
 app.use("/api/v1/checkout", checkoutRoutes);
 app.use("/api/v1/branch", branchRoutes);
-app.use("/api/v1/orders",userOrders);
+app.use("/api/v1/admin/orders", orderRoutes);
 // app.post("/api/stocks", async (req, res, next) => {
 //   try {
 //     console.log("Received request to add stock level");

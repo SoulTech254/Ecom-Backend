@@ -1,13 +1,16 @@
 import Order from "../models/order.model.js";
-import { getAllOrders, findOrders } from "../services/orders.services.js";
+import {
+  getAllOrders,
+  findOrders,
+  getOrder,
+} from "../services/orders.services.js";
 import { pagination } from "../middlewares/paginationHandler.js";
 
 // Controller to get all orders with pagination and status filter
 // controllers/orders.controller.js
 
 // controllers/orders.controller.js
-import { parse } from 'date-fns';
-
+import { parse } from "date-fns";
 export const getAllOrdersController = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -57,13 +60,14 @@ export const getAllOrdersController = async (req, res) => {
     if (deliverySlot) {
       const parsedEndTime = parse(deliverySlot, "yyyy-MM-dd HH:mm", new Date());
       searchConditions.push({
-        deliveryTime: {
+        "delivery.deliverySlot": {
           $lte: parsedEndTime,
         },
       });
     }
 
-    const countFilter = searchConditions.length > 0 ? { $and: searchConditions } : {};
+    const countFilter =
+      searchConditions.length > 0 ? { $and: searchConditions } : {};
 
     const totalCount = await Order.countDocuments(countFilter).exec();
     results.metadata.totalCount = totalCount;
@@ -83,12 +87,21 @@ export const getAllOrdersController = async (req, res) => {
     } else if (sortOption === "oldest") {
       queryBuilder = queryBuilder.sort({ createdAt: 1 });
     } else if (sortOption === "bestmatch") {
-      queryBuilder = queryBuilder.sort({ productName: 1 });
+      queryBuilder = queryBuilder.sort({ "products.productName": 1 });
     }
 
     queryBuilder = queryBuilder.skip(startIndex).limit(limit);
 
     results.results = await queryBuilder.exec();
+
+    // Populate references
+    await Order.populate(results.results, [
+      { path: "user" },
+      { path: "delivery.address" },
+      { path: "products.id" },
+      { path: "branch" },
+      { path: "payment" },
+    ]);
 
     if (startIndex + limit < totalCount) {
       results.next = {
@@ -116,7 +129,9 @@ export const updateOrdersStatusByTimeSlot = async (req, res) => {
     const { startTime, deliverySlot, newStatus } = req.body;
 
     if (!startTime || !deliverySlot || !newStatus) {
-      return res.status(400).json({ message: "startTime, deliverySlot, and newStatus are required" });
+      return res.status(400).json({
+        message: "startTime, deliverySlot, and newStatus are required",
+      });
     }
 
     const filter = {
@@ -128,71 +143,101 @@ export const updateOrdersStatusByTimeSlot = async (req, res) => {
       },
     };
 
-    console.log('Filter:', JSON.stringify(filter, null, 2));
+    console.log("Filter:", JSON.stringify(filter, null, 2));
 
-    const result = await Order.updateMany(filter, { $set: { status: newStatus } });
+    const result = await Order.updateMany(filter, {
+      $set: { status: newStatus },
+    });
 
-    console.log('Result:', result);
+    console.log("Result:", result);
 
     if (result.modifiedCount === 0) {
-      return res.status(404).json({ message: "No orders found matching the criteria" });
+      return res
+        .status(404)
+        .json({ message: "No orders found matching the criteria" });
     }
 
-    res.status(200).json({ message: `${result.modifiedCount} orders updated successfully` });
+    res
+      .status(200)
+      .json({ message: `${result.modifiedCount} orders updated successfully` });
   } catch (error) {
-    console.error('Error updating orders:', error);
-    res.status(500).json({ message: 'Error updating orders.' });
+    console.error("Error updating orders:", error);
+    res.status(500).json({ message: "Error updating orders." });
   }
 };
 
 // src/controllers/orders.controller.js
 
-import { updateOrderStatusByUser as updateOrderStatusByUserService } from '../services/orders.services.js';
+import { updateOrderStatusByUser as updateOrderStatusByUserService } from "../services/orders.services.js";
 
 export const updateOrderStatusByUser = async (req, res) => {
   try {
     const userId = req.params.userId;
     const { newStatus } = req.body;
 
-    console.log('Controller - User ID:', userId);
-    console.log('Controller - New Status:', newStatus);
+    console.log("Controller - User ID:", userId);
+    console.log("Controller - New Status:", newStatus);
 
     if (!newStatus) {
-      console.log('Controller - Error: newStatus is required');
+      console.log("Controller - Error: newStatus is required");
       return res.status(400).json({ message: "newStatus is required" });
     }
 
     const result = await updateOrderStatusByUserService(userId, newStatus);
 
-    console.log('Controller - Service Result:', result);
+    console.log("Controller - Service Result:", result);
 
     if (result.modifiedCount === 0) {
-      console.log('Controller - No orders found for the specified user');
-      return res.status(404).json({ message: "No orders found for the specified user" });
+      console.log("Controller - No orders found for the specified user");
+      return res
+        .status(404)
+        .json({ message: "No orders found for the specified user" });
     }
 
-    console.log(`Controller - ${result.modifiedCount} orders updated successfully`);
-    res.status(200).json({ message: `${result.modifiedCount} orders updated successfully` });
+    console.log(
+      `Controller - ${result.modifiedCount} orders updated successfully`
+    );
+    res
+      .status(200)
+      .json({ message: `${result.modifiedCount} orders updated successfully` });
   } catch (error) {
-    console.error('Controller - Error updating orders:', error);
-    res.status(500).json({ message: 'Error updating orders.' });
+    console.error("Controller - Error updating orders:", error);
+    res.status(500).json({ message: "Error updating orders." });
   }
 };
-
- 
-
-
 
 // Controller to get orders by userId with pagination and status filter
 export const getOrdersByUserIdController = async (req, res) => {
   try {
     const userId = req.query.userId;
     const status = req.query.status;
+
+    console.log("------------------");
+    console.log("Controller - User ID:", userId);
+    console.log("Controller - Status:", status);
+    console.log("------------------");
+
     const orders = await findOrders(userId, status);
-    console.log(orders)
+    console.log("------------------");
+    console.log("Controller - Orders:", orders);
+    console.log("------------------");
+
     res.status(200).json(orders);
   } catch (error) {
-    console.error("Error retrieving orders:", error);
+    console.error("------------------");
+    console.error("Controller - Error retrieving orders:", error);
+    console.error("------------------");
+
     res.status(500).json({ message: "Error retrieving orders." });
+  }
+};
+
+export const getOrderController = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const order = await getOrder(orderId);
+    res.status(200).json(order);
+  } catch (error) {
+    next(error);
   }
 };
