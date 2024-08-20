@@ -4,6 +4,7 @@ import {
   updateUserHandler,
   getUserHandler
 } from "../controllers/admUsers.controller.js";
+import { generateMockStockData } from "../controllers/stocks.controller.js";
 
 const router = Router();
 

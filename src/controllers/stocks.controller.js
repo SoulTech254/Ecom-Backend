@@ -1,10 +1,12 @@
-import { getProductsWithStockLevels, getProductWithStockLevel } from "../utils/stockLevels.js";
+import {
+  getProductsWithStockLevels,
+  getProductWithStockLevel,
+} from "../utils/stockLevels.js";
 import { ObjectId } from "mongodb";
 import Stock from "../models/stocks.model.js";
 import Branch from "../models/branch.model.js";
 import Product from "../models/products.models.js";
 import mongoose from "mongoose";
-
 
 export const getProductsWithStockLevelsController = async (req, res) => {
   try {
@@ -27,7 +29,9 @@ export const getProductsWithStockLevelsController = async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error("Error retrieving products with stock levels:", error);
-    res.status(500).json({ message: "Error retrieving products with stock levels." });
+    res
+      .status(500)
+      .json({ message: "Error retrieving products with stock levels." });
   }
 };
 
@@ -36,7 +40,9 @@ export const getProductWithStockLevelController = async (req, res) => {
     const { productId, branchId } = req.params;
 
     if (!ObjectId.isValid(productId) || !ObjectId.isValid(branchId)) {
-      return res.status(400).json({ message: "Invalid product ID or branch ID" });
+      return res
+        .status(400)
+        .json({ message: "Invalid product ID or branch ID" });
     }
 
     const result = await getProductWithStockLevel(productId, branchId);
@@ -48,7 +54,9 @@ export const getProductWithStockLevelController = async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error("Error retrieving product with stock level:", error);
-    res.status(500).json({ message: "Error retrieving product with stock level." });
+    res
+      .status(500)
+      .json({ message: "Error retrieving product with stock level." });
   }
 };
 
@@ -58,7 +66,10 @@ export const addStockController = async (req, res) => {
     const { branchId, productId, stockLevel } = req.body;
 
     // Validate branchId and productId
-    if (!mongoose.Types.ObjectId.isValid(branchId) || !mongoose.Types.ObjectId.isValid(productId)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(branchId) ||
+      !mongoose.Types.ObjectId.isValid(productId)
+    ) {
       return res.status(400).json({ message: "Invalid branch or product ID" });
     }
 
@@ -68,7 +79,7 @@ export const addStockController = async (req, res) => {
 
     if (!branchExists || !productExists) {
       return res.status(404).json({ message: "Branch or Product not found" });
-    } 
+    }
 
     // Create new stock entry
     const newStock = new Stock({
@@ -117,7 +128,6 @@ export const updateStockController = async (req, res) => {
   }
 };
 
-
 // Delete a stock entry
 export const deleteStockController = async (req, res) => {
   try {
@@ -139,5 +149,43 @@ export const deleteStockController = async (req, res) => {
   } catch (error) {
     console.error("Error deleting stock:", error);
     res.status(500).json({ message: "Error deleting stock" });
+  }
+};
+
+export const generateMockStockData = async (req, res) => {
+  try {
+    // Fetch products and branches
+    const products = await Product.find().exec();
+    const branches = await Branch.find().exec();
+
+    if (products.length === 0 || branches.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No products or branches found." });
+    }
+
+    const stockData = [];
+
+    products.forEach((product) => {
+      branches.forEach((branch) => {
+        stockData.push({
+          productId: product._id,
+          branchId: branch._id,
+          stockLevel: Math.floor(Math.random() * 1000), // Generate random stock levels between 0 and 999
+        });
+      });
+    });
+
+    // Insert stock data into the database
+    await Stock.insertMany(stockData);
+
+    return res
+      .status(200)
+      .json({ message: "Mock stock data generated successfully." });
+  } catch (error) {
+    console.error("Error generating mock stock data:", error);
+    return res
+      .status(500)
+      .json({ message: "Error generating mock stock data.", error });
   }
 };

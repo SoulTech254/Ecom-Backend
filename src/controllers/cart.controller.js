@@ -3,6 +3,7 @@ import {
   updateCart,
   mergeCart,
   deleteProduct,
+  setProductQuantity,
 } from "../services/cart.service.js";
 
 export const getCartHandler = async (req, res, next) => {
@@ -18,11 +19,16 @@ export const getCartHandler = async (req, res, next) => {
 export const updateCartHandler = async (req, res, next) => {
   try {
     const id = req.params.id;
-    const updatedCart = await updateCart(
-      id,
-      req.body.product,
-      req.body.quantity
-    );
+    const { product, quantity, method } = req.body; // Destructure method from request body
+
+    // Check the method to determine which service function to call
+    let updatedCart;
+    if (method === "setQuantity") {
+      updatedCart = await setProductQuantity(id, product, quantity);
+    } else {
+      updatedCart = await updateCart(id, product, quantity);
+    }
+
     res.status(200).json(updatedCart);
   } catch (error) {
     next(error);
@@ -31,14 +37,14 @@ export const updateCartHandler = async (req, res, next) => {
 
 export const mergeCartHandler = async (req, res, next) => {
   try {
-    console.log("body", req.body)
-    console.log('Merging cart', req.params.id, req.body);
+    console.log("body", req.body);
+    console.log("Merging cart", req.params.id, req.body);
     const id = req.params.id;
     const updatedCart = await mergeCart(id, req.body);
-    console.log('Cart merged', updatedCart);
+    console.log("Cart merged", updatedCart);
     res.status(200).json(updatedCart);
   } catch (error) {
-    console.error('Error merging cart', error);
+    console.error("Error merging cart", error);
     next(error);
   }
 };

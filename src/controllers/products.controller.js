@@ -28,6 +28,7 @@ export const getProductsPageHandler = [
 
 export const homeProductsPageHandler = async (req, res, next) => {
   const { branchId } = req.query;
+  console.log("BranchId: ", branchId);
   try {
     const products = await getProductsWithStockLevels(
       branchId,
@@ -66,7 +67,6 @@ export const getProductHandler = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { branchName } = req.query;
-    console.log(id, branchName);
     const product = await getProduct(id, branchName);
     res.status(200).json(product);
   } catch (error) {
@@ -82,5 +82,21 @@ export const postCartProductsHandler = async (req, res) => {
     res.status(200).json(updatedCart);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const getBestSellersHandler = async (req, res, next) => {
+  try {
+    const { branchId } = req.query;
+    const products = await getProductsWithStockLevels(
+      branchId,
+      {},
+      "productName",
+      1,
+      8
+    );
+    res.status(200).json(products);
+  } catch (error) {
+    res.send(error);
   }
 };

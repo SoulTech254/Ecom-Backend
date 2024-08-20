@@ -111,16 +111,8 @@ export const addToCart = async (userId, productId, quantity = 1) => {
 
 export const getProduct = async (productId, branchId) => {
   try {
-    // Validate product ID
-    if (!ObjectId.isValid(productId)) {
-      throw new Error("Invalid product ID");
-    }
-
-    // Validate branch ID
-    if (!ObjectId.isValid(branchId)) {
-      throw new Error("Invalid branch ID");
-    }
-
+    console.log("branchId", branchId);
+    console.log("productId", productId);
     // Convert string IDs to ObjectId
     const productObjectId = ObjectId.createFromHexString(productId);
     const branchObjectId = ObjectId.createFromHexString(branchId);
@@ -159,16 +151,53 @@ export const getProduct = async (productId, branchId) => {
         },
       },
       {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryDetails",
+        },
+      },
+      {
+        $unwind: "$categoryDetails",
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryDetails.path",
+          foreignField: "_id",
+          as: "categoryPathDetails",
+        },
+      },
+      {
+        $addFields: {
+          categoryPath: {
+            $map: {
+              input: "$categoryPathDetails",
+              as: "cat",
+              in: {
+                name: "$$cat.name",
+                _id: "$$cat._id",
+              },
+            },
+          },
+        },
+      },
+      {
         $project: {
           _id: 1,
           productName: 1,
           images: 1,
-          category: 1,
           brand: 1,
           price: 1,
+          size: 1,
+          discountPrice: 1, // Add discountPrice field
           stockLevel: 1,
-          stockEntries: 1, // Optional, include if needed
-          // Exclude debug fields
+          category: {
+            _id: "$categoryDetails._id",
+            name: "$categoryDetails.name",
+            path: "$categoryPath",
+          },
         },
       },
     ];

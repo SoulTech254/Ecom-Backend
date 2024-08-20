@@ -40,13 +40,13 @@ export const createUser = async (userData) => {
     cart.user = newUser._id; // Set the user reference in the cart
     await cart.save();
 
-    // Send verification code to user's phone number
-    await sendVerificationCode(`+254${phoneNumber}`, verificationCode);
+    // // Send verification code to user's phone number
+    // await sendVerificationCode(`+254${phoneNumber}`, verificationCode);
 
     // Omit sensitive fields from returned user object
     const {
       password: pass,
-      verificationCode: code,
+      // verificationCode: code,
       ...user
     } = newUser.toObject();
     return user;

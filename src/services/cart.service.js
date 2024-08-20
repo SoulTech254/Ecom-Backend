@@ -21,7 +21,7 @@ export const getCart = async (id) => {
 
 export const updateCart = async (id, productId, quantity) => {
   try {
-    console.log(productId);
+    console.log(productId, quantity);
     const cart = await Cart.findById(id);
     if (!cart) {
       throw new Error("Cart not found");
@@ -51,6 +51,59 @@ export const updateCart = async (id, productId, quantity) => {
 
     console.log(cart);
     cart.populate({
+      path: "products.product",
+      select: "productName price images SKU", // Specify desired fields
+    });
+
+    // Recalculate totals before saving
+    await cart.calculateTotal();
+
+    // Save the updated cart
+    await cart.save();
+
+    return cart;
+  } catch (error) {
+    console.error(error);
+    throw new Error("Error updating cart");
+  }
+};
+
+export const setProductQuantity = async (id, productId, quantity) => {
+  try {
+    console.log(productId, quantity);
+    const cart = await Cart.findById(id);
+    if (!cart) {
+      throw new Error("Cart not found");
+    }
+    console.log(cart);
+    console.log(quantity);
+
+    // Update product quantity (logic for setting the exact quantity)
+    const existingProductIndex = cart.products.findIndex(
+      (item) => item.product.toString() === productId
+    );
+
+    if (existingProductIndex !== -1) {
+      // Product already exists in cart, update quantity
+      if (quantity <= 0) {
+        // Remove product from cart if quantity is 0 or negative
+        cart.products.splice(existingProductIndex, 1);
+      } else {
+        // Set the exact quantity
+        cart.products[existingProductIndex].quantity = quantity;
+      }
+    } else {
+      if (quantity > 0) {
+        // New product, add it to the cart
+        cart.products.push({
+          product: new mongoose.Types.ObjectId(productId),
+          quantity: quantity,
+        });
+      }
+    }
+
+    console.log(cart);
+    await cart.populate({
       path: "products.product",
       select: "productName price images SKU", // Specify desired fields
     });
