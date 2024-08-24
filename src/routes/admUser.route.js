@@ -2,9 +2,8 @@ import { Router } from "express";
 import {
   getUsersPageHandler,
   updateUserHandler,
-  getUserHandler
+  getUserHandler,
 } from "../controllers/admUsers.controller.js";
-import { generateMockStockData } from "../controllers/stocks.controller.js";
 
 const router = Router();
 

@@ -2,6 +2,9 @@ import Product from "../models/products.models.js";
 import { productExists } from "../utils/products.utils.js";
 import Cart from "../models/cart.models.js";
 import mongoose from "mongoose";
+import Category from "../models/category.models.js";
+import { findAllDescendantCategories } from "../utils/category.utils.js";
+import { getProductsWithStockLevels } from "../utils/stockLevels.js";
 const ObjectId = mongoose.Types.ObjectId;
 
 export const createProduct = async (productData) => {
@@ -111,17 +114,15 @@ export const addToCart = async (userId, productId, quantity = 1) => {
 
 export const getProduct = async (productId, branchId) => {
   try {
-    console.log("branchId", branchId);
-    console.log("productId", productId);
-    // Convert string IDs to ObjectId
-    const productObjectId = ObjectId.createFromHexString(productId);
-    const branchObjectId = ObjectId.createFromHexString(branchId);
+    // Convert productId and branchId to ObjectId
+    const productObjectId = new mongoose.Types.ObjectId(productId);
+    const branchObjectId = new mongoose.Types.ObjectId(branchId);
 
     // Aggregate pipeline to fetch product with stock level for a specific branch
     const pipeline = [
       {
         $match: {
-          _id: productObjectId, // Use the converted `productObjectId`
+          _id: productObjectId, // Match the product by ObjectId
         },
       },
       {
@@ -135,19 +136,26 @@ export const getProduct = async (productId, branchId) => {
       {
         $addFields: {
           stockLevel: {
-            $first: {
-              $filter: {
-                input: "$stockEntries",
-                as: "stock",
-                cond: { $eq: ["$$stock.branchId", branchObjectId] },
+            $let: {
+              vars: {
+                stockEntry: {
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: "$stockEntries",
+                        as: "stock",
+                        cond: { $eq: ["$$stock.branchId", branchObjectId] },
+                      },
+                    },
+                    0,
+                  ],
+                },
+              },
+              in: {
+                $ifNull: ["$$stockEntry.stockLevel", 0],
               },
             },
           },
-        },
-      },
-      {
-        $addFields: {
-          stockLevel: { $ifNull: ["$stockLevel.stockLevel", 0] },
         },
       },
       {
@@ -159,7 +167,10 @@ export const getProduct = async (productId, branchId) => {
         },
       },
       {
-        $unwind: "$categoryDetails",
+        $unwind: {
+          path: "$categoryDetails",
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
@@ -202,17 +213,61 @@ export const getProduct = async (productId, branchId) => {
       },
     ];
 
-    console.log("Executing aggregation pipeline:");
-    console.log(JSON.stringify(pipeline, null, 2));
-
     const result = await Product.aggregate(pipeline);
 
-    console.log("Aggregation pipeline result:");
-    console.log(JSON.stringify(result, null, 2));
-
-    return result[0];
+    return result[0] || null; // Return null if no result is found
   } catch (error) {
     console.error("Error getting product:", error);
     throw new Error("Error getting product!");
+  }
+};
+
+export const findSubcategory = async (category) => {
+  try {
+    const categories = await Category.find({ parent: category })
+      .limit(7)
+      .exec();
+    return categories;
+  } catch (error) {
+    throw new Error("Error finding subcategory: " + error.message);
+  }
+};
+
+export const findProductsByCategory = async (
+  categoryId,
+  branchId,
+  searchQuery = "",
+  sortBy = "createdAt",
+  sortOrder = -1,
+  page = 1,
+  limit = 10
+) => {
+  try {
+    // Step 1: Find all descendant categories including the given category
+    const descendantCategoryIds = await findAllDescendantCategories(categoryId);
+
+    // Include the original categoryId in the list of IDs
+    descendantCategoryIds.push(categoryId);
+
+    // Step 2: Construct the search criteria to include categories
+    const criteria = {
+      category: { $in: descendantCategoryIds },
+    };
+
+    // Step 3: Call getProductsWithStockLevels with the constructed criteria
+    const productsWithStockLevels = await getProductsWithStockLevels(
+      branchId,
+      criteria,
+      searchQuery,
+      sortBy,
+      sortOrder,
+      page,
+      limit
+    );
+
+    return productsWithStockLevels;
+  } catch (error) {
+    console.error("Error finding products by categoryId:", error.message);
+    throw new Error("Error finding products by categoryId: " + error.message);
   }
 };

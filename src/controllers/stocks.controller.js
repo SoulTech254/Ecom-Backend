@@ -10,12 +10,19 @@ import mongoose from "mongoose";
 
 export const getProductsWithStockLevelsController = async (req, res) => {
   try {
-    const { branchId, criteria, sortBy, sortOrder, page, limit } = req.query;
+    const {
+      branchId,
+      criteria = "{}",
+      sortBy = "createdAt",
+      sortOrder = -1,
+      page = 1,
+      limit = 10,
+    } = req.query;
 
-    const parsedCriteria = criteria ? JSON.parse(criteria) : {};
-    const parsedSortOrder = parseInt(sortOrder) || -1;
-    const parsedPage = parseInt(page) || 1;
-    const parsedLimit = parseInt(limit) || 10;
+    const parsedCriteria = JSON.parse(criteria);
+    const parsedSortOrder = parseInt(sortOrder, 10) || -1;
+    const parsedPage = parseInt(page, 10) || 1;
+    const parsedLimit = parseInt(limit, 10) || 10;
 
     const result = await getProductsWithStockLevels(
       branchId,
@@ -147,45 +154,6 @@ export const deleteStockController = async (req, res) => {
 
     res.status(200).json({ message: "Stock entry deleted successfully" });
   } catch (error) {
-    console.error("Error deleting stock:", error);
-    res.status(500).json({ message: "Error deleting stock" });
-  }
-};
-
-export const generateMockStockData = async (req, res) => {
-  try {
-    // Fetch products and branches
-    const products = await Product.find().exec();
-    const branches = await Branch.find().exec();
-
-    if (products.length === 0 || branches.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No products or branches found." });
-    }
-
-    const stockData = [];
-
-    products.forEach((product) => {
-      branches.forEach((branch) => {
-        stockData.push({
-          productId: product._id,
-          branchId: branch._id,
-          stockLevel: Math.floor(Math.random() * 1000), // Generate random stock levels between 0 and 999
-        });
-      });
-    });
-
-    // Insert stock data into the database
-    await Stock.insertMany(stockData);
-
-    return res
-      .status(200)
-      .json({ message: "Mock stock data generated successfully." });
-  } catch (error) {
-    console.error("Error generating mock stock data:", error);
-    return res
-      .status(500)
-      .json({ message: "Error generating mock stock data.", error });
+    next(error);
   }
 };

@@ -5,7 +5,6 @@ import {
   updateProductHandler,
   deleteProductHandler,
   getProductHandler,
-  // getBestSellersHandler,
 } from "../controllers/products.controller.js";
 import {
   addStockController,
@@ -16,8 +15,6 @@ import {
 const router = express.Router();
 
 router.post("/", postProductHandler);
-router.get("/", getProductsPageHandler);
-// router.get("/best-sellers", getBestSellersHandler);
 router.put("/:id", updateProductHandler);
 router.delete("/", deleteProductHandler);
 router.get("/:id", getProductHandler);

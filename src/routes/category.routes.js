@@ -10,13 +10,10 @@ import {
   deleteCategory,
   addProducts,
 } from "../controllers/category.controller.js";
-import { generateMockStockData } from "../controllers/stocks.controller.js";
 
 router.get("/", getAllCategories);
 
-router.post("/products", addProducts)
-
-router.post("/stocks", generateMockStockData)
+router.post("/products", addProducts);
 
 router.get("/:id", getCategoryById);
 
@@ -26,4 +23,4 @@ router.put("/:id", updateCategory);
 
 router.delete("/:id", deleteCategory);
 
-export default router
+export default router;

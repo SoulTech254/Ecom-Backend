@@ -48,3 +48,21 @@ export const addCategory = async (
     throw error;
   }
 };
+
+export const findAllDescendantCategories = async (parentId) => {
+  // Find direct children of the parent category
+  const subcategories = await Category.find({ parent: parentId }).select("_id");
+
+  let allCategoryIds = subcategories.map((cat) => cat._id);
+
+  // For each subcategory, find its descendants
+  for (const subcategory of subcategories) {
+    const descendantCategoryIds = await findAllDescendantCategories(
+      subcategory._id
+    );
+    allCategoryIds = allCategoryIds.concat(descendantCategoryIds);
+  }
+  allCategoryIds.push(parentId);
+
+  return allCategoryIds;
+};

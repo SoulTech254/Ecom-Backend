@@ -2,25 +2,81 @@ import mongoose from "mongoose";
 import Product from "../models/products.models.js";
 
 const ObjectId = mongoose.Types.ObjectId;
-console.log("Entering getProductsWithStockLevels function");
 
+/**
+ * Retrieves products with their corresponding stock levels for a specific branch.
+ *
+ * This function executes an aggregation pipeline to fetch products from the database,
+ * then performs a lookup to retrieve stock levels from the "stocks" collection based on
+ * the provided branch ID. It filters the stock entries to get the stock level for the
+ * specified branch, and it returns the products with the associated stock levels.
+ *
+ * If a search query is provided, it will filter the products based on the search term
+ * applied to specific fields like productName, description, or brand.
+ *
+ * Pagination is supported via the page and limit parameters, and metadata about the
+ * pagination is returned along with the products.
+ *
+ * @param {string} branchId - The ID of the branch for which to retrieve stock levels.
+ * @param {Object} [criteria={}] - An optional criteria object to filter the products.
+ *                                 For example, { category: "electronics" }.
+ * @param {string} [searchQuery=""] - An optional search query to filter products by name, description, or brand.
+ * @param {string} [sortBy="createdAt"] - The field by which to sort the results.
+ *                                        Defaults to "createdAt".
+ * @param {number} [sortOrder=-1] - The order in which to sort the results.
+ *                                  -1 for descending, 1 for ascending. Defaults to -1.
+ * @param {number} [page=1] - The page number for pagination. Defaults to 1.
+ * @param {number} [limit=10] - The maximum number of products to return. Defaults to 10.
+ *
+ * @returns {Promise<{products: Array<Object>, metadata: Object}>} A promise that resolves to an object containing
+ *                                     an array of product objects and a metadata object with pagination info.
+ *
+ * @throws {Error} Throws an error if the branch ID is invalid or if the aggregation pipeline fails.
+ *
+ * @example
+ * // Retrieve products from page 2 with a limit of 5 products per page
+ * const { products, metadata } = await getProductsWithStockLevels(
+ *   "60f8a3f1b8d3c42b58c73334",
+ *   { category: "electronics" },
+ *   "smartphone",
+ *   "price",
+ *   1,
+ *   2,
+ *   5
+ * );
+ *
+ * console.log(products);
+ * console.log(metadata);
+ */
 export const getProductsWithStockLevels = async (
   branchId,
   criteria = {},
+  searchQuery = "",
   sortBy = "createdAt",
   sortOrder = -1,
+  page = 1,
   limit = 10
 ) => {
   try {
-    console.log("Received parameters:");
-    console.log({ branchId, criteria, sortBy, sortOrder, limit });
+    const branchObjectId = ObjectId.createFromHexString(branchId);
 
-    if (!ObjectId.isValid(branchId)) {
-      console.error("Invalid branch ID:", branchId);
-      throw new Error("Invalid branch ID");
+    // Incorporate search query into the criteria using $regex for partial matches
+    if (searchQuery) {
+      criteria.productName = { $regex: searchQuery, $options: "i" };
     }
 
-    const branchObjectId = ObjectId.createFromHexString(branchId);
+    // Apply case-insensitive regex for brand if provided
+    if (criteria.brand) {
+      criteria.brand = { $regex: new RegExp(`^${criteria.brand}$`, "i") };
+    }
+
+    console.log("Criteria before query execution:", criteria);
+
+    const skip = (page - 1) * limit;
+
+    // Count the total number of matching documents
+    const totalDocuments = await Product.countDocuments(criteria);
+    console.log("Total documents found:", totalDocuments);
 
     const pipeline = [
       { $match: criteria },
@@ -63,23 +119,33 @@ export const getProductsWithStockLevels = async (
           stockLevel: 1,
         },
       },
-      { $sort: { [sortBy]: sortOrder } }, // Sorting stage
-      { $limit: limit },
+      { $sort: { [sortBy]: sortOrder } }, // Sorting stage with number value
+      { $skip: skip }, // Skipping documents for pagination
+      { $limit: limit }, // Limiting the number of documents
     ];
 
-    console.log("Executing aggregation pipeline:");
-    console.log(JSON.stringify(pipeline, null, 2));
+    console.log(
+      "Pipeline before aggregation execution:",
+      JSON.stringify(pipeline, null, 2)
+    );
 
     const products = await Product.aggregate(pipeline);
 
-    console.log("Aggregation pipeline result:");
-    console.log(JSON.stringify(products, null, 2));
+    console.log("Products retrieved:", products);
 
-    console.log("Exiting getProductsWithStockLevels function");
+    // Calculate total pages and current page information
+    const totalPages = Math.ceil(totalDocuments / limit);
+    const currentPage = page;
+    const metadata = {
+      totalDocuments,
+      totalPages,
+      currentPage,
+      limit,
+    };
 
-    return products;
+    return { products, metadata };
   } catch (error) {
-    console.error("Error getting products with stock levels:", error);
+    console.error("Detailed error:", error.message, error.stack);
     throw new Error("Error getting products with stock levels");
   }
 };
