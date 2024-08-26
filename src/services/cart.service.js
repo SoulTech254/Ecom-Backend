@@ -5,7 +5,7 @@ export const getCart = async (id) => {
   try {
     const cart = await Cart.findById(id).populate({
       path: "products.product",
-      select: "productName price images SKU", // Specify desired fields
+      select: "productName price discountPrice images SKU", // Specify desired fields
     });
 
     if (!cart) {
@@ -52,7 +52,7 @@ export const updateCart = async (id, productId, quantity) => {
     console.log(cart);
     cart.populate({
       path: "products.product",
-      select: "productName price images SKU", // Specify desired fields
+      select: "productName price discountPrice images SKU", // Specify desired fields
     });
 
     // Recalculate totals before saving
@@ -105,7 +105,7 @@ export const setProductQuantity = async (id, productId, quantity) => {
     console.log(cart);
     await cart.populate({
       path: "products.product",
-      select: "productName price images SKU", // Specify desired fields
+      select: "productName price discountPrice images SKU", // Specify desired fields
     });
 
     // Recalculate totals before saving
@@ -189,7 +189,7 @@ export const deleteProduct = async (cartId, productId) => {
 
     return cart.populate({
       path: "products.product",
-      select: "productName price images SKU", // Specify desired fields
+      select: "productName price discountPrice images SKU", // Specify desired fields
     });
   } catch (error) {
     console.error(error);

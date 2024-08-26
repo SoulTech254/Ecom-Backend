@@ -2,8 +2,14 @@ import mongoose from "mongoose";
 
 const addressSchema = new mongoose.Schema({
   location: {
+    type: {
+      type: String,
+      enum: ["Point"], // GeoJSON type
+      required: true,
+    },
     coordinates: {
-      type: [Number],
+      type: [Number], // Array of numbers
+      required: true,
     },
   },
   building: {
@@ -25,6 +31,9 @@ const branchSchema = new mongoose.Schema({
   },
   address: addressSchema,
 });
+
+// Create a 2dsphere index on the coordinates field
+branchSchema.index({ "address.location": "2dsphere" });
 
 const Branch = mongoose.model("Branch", branchSchema);
 

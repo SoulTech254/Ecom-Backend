@@ -3,8 +3,14 @@ import mongoose from "mongoose";
 const addressSchema = new mongoose.Schema({
   address: {
     location: {
+      type: {
+        type: String,
+        enum: ["Point"], // GeoJSON type
+        required: true,
+      },
       coordinates: {
-        type: [Number],
+        type: [Number], // Array of numbers
+        required: true,
       },
     },
     address: {
@@ -13,11 +19,11 @@ const addressSchema = new mongoose.Schema({
     building: {
       type: String,
     },
-    city:{
-      type: String
+    city: {
+      type: String,
     },
-    apartment:{
-      type: String
+    apartment: {
+      type: String,
     },
     contactNumber: {
       type: String,
