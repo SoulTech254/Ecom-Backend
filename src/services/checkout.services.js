@@ -67,16 +67,7 @@ export const initiateCheckout = async ({
         : null,
     deliveryMethod: delivery.method,
     deliverySlot: deliverySlot,
-    branch: nearestBranch
-      ? {
-          id: nearestBranch._id,
-          name: nearestBranch.name,
-          address: nearestBranch.address.building,
-          coordinates: nearestBranch.address.location.coordinates,
-          city: nearestBranch.address.city,
-          contactNumber: nearestBranch.address.contactNumber,
-        }
-      : branch,
+    branch: nearestBranch ? nearestBranch._id : branch,
     products: cartDocument.products.map((item) => ({
       id: item.product._id,
       name: item.product.productName,

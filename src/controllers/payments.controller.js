@@ -1,4 +1,5 @@
 import Cart from "../models/cart.models.js";
+import Order from "../models/order.model.js";
 import Payment from "../models/payment.model.js";
 import User from "../models/user.model.js";
 import {
@@ -18,18 +19,17 @@ export const mpesaPaymentHandler = async (req, res, next) => {
       totalQuantity,
       totalAmount,
       paymentAccount,
-      branch
+      branch,
     } = req.body;
 
-
-    console.log("deliveryAddress: ", deliveryAddress)
+    console.log("deliveryAddress: ", deliveryAddress);
 
     // Create a new order
     const newOrder = {
       user: user.id,
-      products: products.map(product => ({
+      products: products.map((product) => ({
         id: product.id,
-        quantity: product.quantity
+        quantity: product.quantity,
       })),
       delivery: {
         address: deliveryAddress.id,
@@ -39,9 +39,8 @@ export const mpesaPaymentHandler = async (req, res, next) => {
       totalQuantity,
       totalAmount,
       status: "pending",
-      branch:branch
+      branch: branch,
     };
-
 
     console.log("New Order:", newOrder);
 
@@ -53,14 +52,6 @@ export const mpesaPaymentHandler = async (req, res, next) => {
     );
 
     console.log("UserID", user.id);
-    
-    const cart = await Cart.findOneAndUpdate(
-      { user: user.id },
-      { $set: { products: [], totalQuantity: 0, totalAmount: 0 } },
-      { new: true } // Ensure to return the updated document
-    );
-
-    console.log("cart: ", cart);
     res.json(results);
   } catch (error) {
     next(error);
@@ -68,33 +59,63 @@ export const mpesaPaymentHandler = async (req, res, next) => {
 };
 
 export const callBackHandler = async (req, res, next) => {
-  console.log("Inside callBackHandler");
-  console.log("req.body: ", req.body);
-  const {
-    Body: {
-      stkCallback: {
-        MerchantRequestID,
-        ResultCode,
-        CallbackMetadata: { Item },
+  try {
+    console.log("Inside callBackHandler");
+    console.log("req.body: ", req.body);
+
+    const {
+      Body: {
+        stkCallback: {
+          MerchantRequestID,
+          ResultCode,
+          CallbackMetadata: { Item },
+        },
       },
-    },
-  } = req.body;
-  console.log("MerchantRequestID: ", MerchantRequestID);
-  console.log("ResultCode: ", ResultCode);
-  console.log("Item: ", Item);
-  const MpesaReceiptNumber = Item.find(
-    (item) => item.Name === "MpesaReceiptNumber"
-  ).Value;
-  console.log("MpesaReceiptNumber: ", MpesaReceiptNumber);
+    } = req.body;
 
-  const updatedPayment = await updatePayment(
-    MerchantRequestID,
-    ResultCode,
-    MpesaReceiptNumber
-  );
-  console.log("updatedPayment: ", updatedPayment);
+    console.log("MerchantRequestID: ", MerchantRequestID);
+    console.log("ResultCode: ", ResultCode);
+    console.log("Item: ", Item);
 
-  return updatedPayment;
+    const MpesaReceiptNumber = Item.find(
+      (item) => item.Name === "MpesaReceiptNumber"
+    ).Value;
+
+    console.log("MpesaReceiptNumber: ", MpesaReceiptNumber);
+
+    // Update payment status
+    const updatedPayment = await updatePayment(
+      MerchantRequestID,
+      ResultCode,
+      MpesaReceiptNumber
+    );
+
+    if (updatedPayment.paymentStatus === "success") {
+      // Clear cart if payment is successful
+      const cart = await Cart.findOneAndUpdate(
+        { user: updatedPayment.user },
+        { $set: { products: [], totalQuantity: 0, totalAmount: 0 } },
+        { new: true } // Ensure to return the updated document
+      );
+
+      console.log("Cart updated: ", cart);
+    } else {
+      // Delete order and payment if payment failed
+      const order = await Order.findOne({ payment: updatedPayment._id });
+
+      if (order) {
+        await Order.deleteOne({ _id: order._id });
+        console.log("Order deleted: ", order._id);
+      }
+
+      await Payment.deleteOne({ _id: updatedPayment._id });
+      console.log("Payment deleted: ", updatedPayment._id);
+    }
+
+    return res.json(updatedPayment);
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const registerURLHandler = async (req, res, next) => {
