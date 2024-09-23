@@ -1,16 +1,20 @@
 import express from "express";
-import {getAllOrdersController,getOrderController,getOrdersByUserIdController,updateOrdersStatusByTimeSlot} from "../controllers/orders.controller.js";
-import { pagination } from "../middlewares/paginationHandler.js";
-import Order from "../models/order.model.js";
-import { updateOrderStatusByUser } from '../controllers/orders.controller.js';
+import {
+  getAllOrdersController,
+  getOrderController,
+  getOrdersByUserIdController,
+  updateOrderStatusByUser,
+  updateOrderLogisticsController
+} from "../controllers/orders.controller.js";
+import { verifyJWT } from "../middlewares/verifyJWT.js";
 
 const router = express.Router();
 
 // Route to get orders by user ID
-router.get("/user/orders", getOrdersByUserIdController);
-router.get('/',getAllOrdersController);
-router.get('/:orderId',getOrderController);
-router.post('/update-status', updateOrdersStatusByTimeSlot);
-router.post('/update-status/:userId', updateOrderStatusByUser);
+router.get("/user/orders", verifyJWT,  getOrdersByUserIdController);
+router.get("/", getAllOrdersController);
+router.get("/:orderId", getOrderController);
+router.put("/update-status/:orderId", updateOrderStatusByUser);
+router.put("/update-logistics/:orderId", updateOrderLogisticsController);
 
 export default router;

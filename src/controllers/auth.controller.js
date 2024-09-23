@@ -8,6 +8,8 @@ import {
   resendOtp,
 } from "../services/auth.service.js";
 import { userExists } from "../utils/userUtils.js";
+import User from "../models/user.model.js";
+import jwt from "jsonwebtoken";
 
 export const createUserHandler = async (req, res, next) => {
   try {
@@ -68,12 +70,19 @@ export const updatePasswordHandler = async (req, res, next) => {
 export async function logInHandler(req, res, next) {
   try {
     const { email, password } = req.body;
-    const { token, user } = await logIn(email, password);
-    res
-      .cookie(token, token, {
-        httpOnly: true,
-      })
-      .json(user);
+    const { accessToken, user, generatedRefreshToken } = await logIn(
+      email,
+      password
+    );
+
+    // Set cookies
+    res.cookie("refreshToken", generatedRefreshToken, {
+      httpOnly: true,
+      sameSite: "None",
+      secure: true, // Change to true if using HTTPS
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    });
+    res.status(200).json({ user, accessToken });
   } catch (error) {
     next(error);
   }
@@ -86,6 +95,67 @@ export const resendOtpHandler = async (req, res, next) => {
     console.log(phoneNumber);
     const code = await resendOtp(phoneNumber);
     res.status(200).json("OTP Resent");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleRefreshToken = (req, res) => {
+  const cookies = req.cookies;
+  console.log("handleRefreshToken: cookies", cookies);
+  if (!cookies?.refreshToken) {
+    console.log("handleRefreshToken: no refresh token in cookies");
+    return res.sendStatus(401);
+  }
+  const refreshToken = cookies.refreshToken;
+  const foundUser = User.findOne({ refreshToken }).exec();
+  if (!foundUser) {
+    console.log("handleRefreshToken: no user found with refresh token");
+    return res.sendStatus(403);
+  }
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      console.log("handleRefreshToken: error verifying refresh token", err);
+      return res.sendStatus(403);
+    }
+    if (foundUser.username !== decoded.username) {
+      console.log("handleRefreshToken: user mismatch");
+      return res.sendStatus(403);
+    }
+    console.log("handleRefreshToken: generating new access token");
+    const accessToken = jwt.sign(
+      { email: decoded.email },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRATION_TIME }
+    );
+    res.json({ accessToken });
+  });
+};
+
+export const logoutHandler = async (req, res, next) => {
+  try {
+    const cookies = req.cookies;
+    if (!cookies?.refreshToken) return res.sendStatus(204);
+
+    const refreshToken = cookies.refreshToken;
+
+    // Await the User.findOne call
+    const foundUser = await User.findOne({ refreshToken }).exec();
+
+    if (!foundUser) {
+      res.clearCookie("accessToken", { httpOnly: true });
+      res.clearCookie("refreshToken", { httpOnly: true });
+      return res.sendStatus(204);
+    }
+
+    // Clear the refresh token
+    foundUser.refreshToken = "";
+    await foundUser.save(); // This should work now
+
+    // Clear cookies
+    res.clearCookie("accessToken", { httpOnly: true });
+    res.clearCookie("refreshToken", { httpOnly: true });
+    res.sendStatus(204);
   } catch (error) {
     next(error);
   }

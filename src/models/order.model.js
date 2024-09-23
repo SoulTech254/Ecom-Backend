@@ -19,7 +19,7 @@ const orderSchema = new mongoose.Schema(
         required: true,
       },
       deliverySlot: {
-        type: String,
+        type: Date,
       },
     },
     orderId: {
@@ -60,8 +60,12 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "onRoute", "Delivered", "Cancelled"],
+      enum: ["pending", "onRoute", "paid", "delivered", "cancelled", "readyForPickup"],
       default: "pending",
+    },
+    logistics: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Logistics",
     },
   },
   {

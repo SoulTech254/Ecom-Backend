@@ -22,7 +22,6 @@ export const createAddress = async (userId, address) => {
 export const getAddresses = async (userId) => {
   try {
     const addresses = await Address.find({ user: userId });
-    console.log(addresses);
     return addresses;
   } catch (error) {
     throw new Error(error.message);

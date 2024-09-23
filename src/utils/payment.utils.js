@@ -65,3 +65,4 @@ export const generateOrderId = () => {
 // Example usage
 const orderId = generateOrderId();
 console.log(orderId); // Example output: 'ord20240708bhsP5Xz'
+

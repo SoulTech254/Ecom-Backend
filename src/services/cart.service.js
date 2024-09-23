@@ -124,6 +124,8 @@ export const setProductQuantity = async (id, productId, quantity) => {
 export const mergeCart = async (id, products) => {
   try {
     console.log("Merging cart with ID:", id);
+
+    // Find the cart by ID
     const cart = await Cart.findById(id);
     if (!cart) {
       console.error("Cart not found");
@@ -149,8 +151,15 @@ export const mergeCart = async (id, products) => {
     // Save the updated cart
     await cart.save();
 
+    // Populate the product field in the cart's products array
+    await cart.populate({
+      path: "products.product", // Populate the product field
+      select: "productName price discountPrice images SKU _id", // Specify the fields you want
+    });
+
     console.log("Cart merged successfully:", cart);
-    return cart;
+
+    return cart; // Return the populated cart
   } catch (error) {
     console.error("Error merging cart:", error);
     throw new Error("Error merging cart");

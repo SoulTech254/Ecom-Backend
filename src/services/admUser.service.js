@@ -1,3 +1,4 @@
+import Order from "../models/order.model.js";
 import User from "../models/user.model.js";
 
 export const updateUser = async (id, body) => {
@@ -17,8 +18,17 @@ export const updateUser = async (id, body) => {
 export const getUser = async (id) => {
   try {
     const user = await User.findById(id);
-    return user
+    return user;
   } catch (error) {
-    throw error
+    throw error;
   }
-}
+};
+
+export const getUserOrders = async (id) => {
+  try {
+    const orders = await Order.find({ user: id })
+    return orders;
+  } catch (error) {
+    throw error;
+  }
+};

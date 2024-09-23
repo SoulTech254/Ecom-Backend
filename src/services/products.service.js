@@ -1,4 +1,5 @@
 import Product from "../models/products.models.js";
+import Stock from "../models/stocks.model.js";
 import { productExists } from "../utils/products.utils.js";
 import Cart from "../models/cart.models.js";
 import mongoose from "mongoose";
@@ -29,18 +30,33 @@ export const createProduct = async (productData) => {
   }
 };
 
-export const updateProduct = async (id, productData) => {
-  const { productName, SKU, ...rest } = productData;
-
+export const updateProduct = async (id, branch, productData) => {
+  const { productName, SKU, stockLevel, ...rest } = productData;
+  console.log("Stock Level: ", stockLevel);
   try {
+    // Update the product
     const updatedProduct = await Product.findOneAndUpdate(
       { _id: id },
-      { productName, ...rest },
+      { productName, SKU, ...rest },
       { new: true }
     );
 
     if (!updatedProduct) {
       throw new Error("Product not found");
+    }
+
+    // Update stock level if SKU and branch are provided
+    if (branch && stockLevel ) {
+      const stockUpdate = await Stock.findOneAndUpdate(
+        { productId: id, branchId: branch },
+        { stockLevel },
+        { new: true, upsert: true } // upsert: true will create a new document if it doesn't exist
+      );
+      console.log("StockUpdate: ", stockUpdate);
+
+      if (!stockUpdate) {
+        throw new Error("Stock update failed");
+      }
     }
 
     return updatedProduct;
@@ -204,6 +220,9 @@ export const getProduct = async (productId, branchId) => {
           size: 1,
           discountPrice: 1, // Add discountPrice field
           stockLevel: 1,
+          description: 1,
+          SKU: 1,
+          measurementUnit: 1,
           category: {
             _id: "$categoryDetails._id",
             name: "$categoryDetails.name",
@@ -222,9 +241,13 @@ export const getProduct = async (productId, branchId) => {
   }
 };
 
-export const findSubcategory = async (category) => {
+export const findSubcategory = async (categoryName) => {
   try {
-    const categories = await Category.find({ parent: category })
+    const category = await Category.findOne({
+      name: { $regex: new RegExp(`^${categoryName}$`, "i") },
+    }).exec();
+    const categoryId = category._id;
+    const categories = await Category.find({ parent: categoryId })
       .limit(7)
       .exec();
     return categories;
@@ -234,7 +257,7 @@ export const findSubcategory = async (category) => {
 };
 
 export const findProductsByCategory = async (
-  categoryId,
+  categoryName,
   branchId,
   searchQuery = "",
   sortBy = "createdAt",
@@ -243,6 +266,11 @@ export const findProductsByCategory = async (
   limit = 10
 ) => {
   try {
+    console.log(categoryName);
+    const category = await Category.findOne({
+      name: { $regex: new RegExp(`^${categoryName}$`, "i") },
+    }).exec();
+    const categoryId = category._id;
     // Step 1: Find all descendant categories including the given category
     const descendantCategoryIds = await findAllDescendantCategories(categoryId);
 

@@ -8,10 +8,13 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  getPaginatedCategories,
   addProducts,
 } from "../controllers/category.controller.js";
 
 router.get("/", getAllCategories);
+
+router.get("/paginated", getPaginatedCategories);
 
 router.post("/products", addProducts);
 

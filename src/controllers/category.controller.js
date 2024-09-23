@@ -1,7 +1,9 @@
+import { pagination } from "../middlewares/paginationHandler.js";
 import Category from "../models/category.models.js";
 import Product from "../models/products.models.js";
 import {
   addCategory,
+  findCategoryByName,
   populateCategoryAncestors,
 } from "../utils/category.utils.js";
 
@@ -416,10 +418,19 @@ export const getCategoryById = async (req, res, next) => {
 // Create a new category
 export const createCategory = async (req, res, next) => {
   const { name, description, parent, imageUrl } = req.body;
+
   try {
+    // Check if a category with the same name already exists
+    const existingCategory = await findCategoryByName(name);
+
+    if (existingCategory) {
+      throw new Error("Category with the same name already exists");
+    }
+
+    // Proceed to create the new category if it doesn't exist
     const newCategory = await addCategory(name, description, parent, imageUrl);
+
     res.status(201).json(newCategory);
-    console.log("A new Category has been created: ", newCategory);
   } catch (error) {
     next(error);
   }
@@ -484,3 +495,10 @@ export const deleteCategory = async (req, res, next) => {
     next(err);
   }
 };
+
+export const getPaginatedCategories = [
+  pagination(Category, {}, {}, ["name"], ["parent"]),
+  (req, res) => {
+    res.json(res.paginatedResults);
+  },
+];

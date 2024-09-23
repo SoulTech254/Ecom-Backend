@@ -1,23 +1,24 @@
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
-import secretKey from "../configs/jwtConfigs.js";
 
 export const userExists = async (phoneNumber) => {
   try {
     const existingUser = await User.findOne({ phoneNumber: phoneNumber });
     return !!existingUser;
   } catch (error) {
-    console.error('Error checking user existence:', error);
-    return false; 
+    console.error("Error checking user existence:", error);
+    return false;
   }
 };
 
+export function generateAccessToken(User) {
+  return jwt.sign({ email: User.email }, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: process.env.ACCESS_TOKEN_EXPIRATION_TIME,
+  });
+}
 
-export function generateToken (User){
-    const payload ={
-        id:User._id,
-        email : User.email,
-        phonenumber : User.phonenumber
-    }
-    return jwt.sign(payload,secretKey,{expiresIn :"1h"})
+export function generateRefreshToken(User) {
+  return jwt.sign({ email: User.email }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn:  process.env.REFRESH_TOKEN_EXPIRATION_TIME,
+  });
 }

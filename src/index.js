@@ -10,29 +10,37 @@ import admUserRoutes from "./routes/admUser.route.js";
 import homeRoutes from "./routes/home.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
+import logisticsRoutes from "./routes/logistics.routes.js";
 import addressRoutes from "./routes/address.routes.js";
 import orderRoutes from "./routes/orders.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import cors from "cors";
-
-const app = express();
-const corsOptions = {
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
-
-// Use CORS with options
-app.use(cors(corsOptions));
+import cookieParser from "cookie-parser";
 
 dotenv.config();
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-app.use(express.json());
 
 console.log(process.env.MONGO_URL);
 mongoose.connect(process.env.MONGO_URL).then(() => {
   console.log("Database connected successfully!");
+});
+
+const app = express();
+
+app.use(express.json());
+app.use(cookieParser());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// CORS configuration
+const corsOptions = {
+  origin: ["http://localhost:5173", "https://edge-estate.onrender.com"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Private-Network", "true");
+  res.status(200).send();
 });
 
 const PORT = process.env.PORT || 9000;
@@ -46,6 +54,8 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin/products", productRoutes);
 app.use("/api/v1/admin/users", admUserRoutes);
 app.use("/api/v1/admin/category", categoryRoutes);
+app.use("/api/v1/admin/logistics", logisticsRoutes);
+app.use("/api/v1/admin/orders", orderRoutes);
 app.use("/api/v1/products", homeRoutes);
 app.use("/api/v1", homeRoutes);
 app.use("/api/v1/cart", cartRoutes);
@@ -53,31 +63,8 @@ app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/addresses", addressRoutes);
 app.use("/api/v1/checkout", checkoutRoutes);
 app.use("/api/v1/orders", orderRoutes);
-// app.post("/api/stocks", async (req, res, next) => {
-//   try {
-//     console.log("Received request to add stock level");
-//     const { productId, branchId, stockLevel } = req.body;
 
-//     // Validate and create the stock entry
-//     console.log("Validating and creating the stock entry");
-//     const stock = await Stock.create({
-//       productId,
-//       branchId,
-//       stockLevel,
-//     });
-
-//     console.log("Stock level added successfully");
-//     res.status(201).json({
-//       success: true,
-//       message: "Stock level added successfully",
-//       data: stock,
-//     });
-//   } catch (err) {
-//     console.log("Error occurred while adding stock level:", err);
-//     next(err);
-//   }
-// });
-
+// Error handling middleware
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";

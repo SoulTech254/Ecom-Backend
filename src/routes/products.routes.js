@@ -18,6 +18,7 @@ router.post("/", postProductHandler);
 router.put("/:id", updateProductHandler);
 router.delete("/", deleteProductHandler);
 router.get("/:id", getProductHandler);
+router.get("/", getProductsPageHandler);
 
 // Route to add a new stock entry
 router.post("/stocks", addStockController);

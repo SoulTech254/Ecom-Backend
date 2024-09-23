@@ -70,6 +70,7 @@ export const initiateCheckout = async ({
     branch: nearestBranch ? nearestBranch._id : branch,
     products: cartDocument.products.map((item) => ({
       id: item.product._id,
+      image: item.product.images[0],
       name: item.product.productName,
       quantity: item.quantity,
       price: item.product.discountPrice,

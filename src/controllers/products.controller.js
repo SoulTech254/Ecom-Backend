@@ -84,8 +84,9 @@ export const homeProductsPageHandler = async (req, res, next) => {
 export const updateProductHandler = async (req, res, next) => {
   try {
     const id = req.params.id;
-    const updatedProduct = await updateProduct(id, req.body);
-    res.status(200).json({ success: true, product: updatedProduct });
+    const { branchName } = req.query;
+    const updatedProduct = await updateProduct(id, branchName, req.body);
+    res.status(200).json(updatedProduct);
   } catch (error) {
     next(error);
   }
@@ -191,13 +192,8 @@ export const searchProductsHandler = async (req, res, next) => {
 
 export const getBranchesHandler = async (req, res, next) => {
   try {
-    console.log("Getting all branches...");
     const branches = await Branch.find();
-
-    console.log("Branches found: ", branches);
-
     if (!branches) {
-      console.log("No branches found. Sending empty array...");
       return res.json([]);
     }
 
@@ -206,8 +202,6 @@ export const getBranchesHandler = async (req, res, next) => {
       value: branch.name,
       id: branch._id,
     }));
-
-    console.log("Formatted branches: ", formattedBranches);
 
     res.json(formattedBranches);
   } catch (error) {

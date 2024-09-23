@@ -1,6 +1,8 @@
 import Category from "../models/category.models.js";
 export const populateCategoryAncestors = async (categoryId, depth = 0) => {
-  const category = await Category.findById(categoryId).populate("parent");
+  const category = await Category.findById(categoryId)
+    .populate("parent")
+    .populate("path");
 
   if (!category || !category.parent || depth >= 10) {
     // Limit recursion to avoid infinite loops
@@ -65,4 +67,8 @@ export const findAllDescendantCategories = async (parentId) => {
   allCategoryIds.push(parentId);
 
   return allCategoryIds;
+};
+
+export const findCategoryByName = async (name) => {
+  return await Category.findOne({ name });
 };

@@ -6,13 +6,14 @@ import {
   getAddressesHandler,
   updateAddressHandler,
 } from "../controllers/address.controller.js";
+import { verifyJWT } from "../middlewares/verifyJWT.js";
 
 const router = Router();
 
-router.get("/:userId", getAddressesHandler);
-router.get("/:id", getAddressHandler);
-router.put("/:id", updateAddressHandler);
-router.delete("/:userId/:id", deleteAddressHandler);
-router.post("/", createAddressHandler);
+router.get("/:userId", verifyJWT, getAddressesHandler);
+router.get("/:id", verifyJWT, getAddressHandler);
+router.put("/:id", verifyJWT, updateAddressHandler);
+router.delete("/:userId/:id", verifyJWT, deleteAddressHandler);
+router.post("/", verifyJWT, createAddressHandler);
 
 export default router

@@ -1,11 +1,11 @@
 import User from "../models/user.model.js";
-import { userExists } from "../utils/userUtils.js";
+import { generateRefreshToken, userExists } from "../utils/userUtils.js";
 import {
   generateVerificationCode,
   sendVerificationCode,
 } from "../utils/verificationUtils.js";
 import bcrypt from "bcrypt";
-import { generateToken } from "../utils/userUtils.js";
+import { generateAccessToken } from "../utils/userUtils.js";
 import Cart from "../models/cart.models.js";
 
 export const createUser = async (userData) => {
@@ -126,29 +126,37 @@ export const updatePassword = async (phoneNumber, password) => {
 };
 
 export async function logIn(email, password) {
-  console.log(email, password);
+  console.log("Logging in with email:", email, "and password:", password);
   try {
     const existingUser = await User.findOne({ email: email });
     if (!existingUser) {
-      console.log("User does not exist");
+      console.log("User does not exist in the database");
       throw new Error("User not found");
     }
+    console.log("User exists, checking password...");
     const isPasswordValid = await bcrypt.compare(
       password,
       existingUser.password
     );
     if (!isPasswordValid) {
-      console.log("Invalid Password");
+      console.log("Password is invalid");
       throw new Error("Invalid Credentials");
     }
+    console.log("Password is valid, generating access and refresh tokens...");
     const {
       password: userPassword,
       verificationCode,
+      refreshToken,
       ...user
     } = existingUser.toObject();
-    const token = generateToken(existingUser);
-    return { user, token };
+    const accessToken = generateAccessToken(existingUser);
+    const generatedRefreshToken = generateRefreshToken(existingUser);
+    existingUser.refreshToken = refreshToken;
+    await existingUser.save();
+    console.log("Successfully logged in, returning user data");
+    return { user, accessToken, generatedRefreshToken };
   } catch (error) {
+    console.log("An error occurred while logging in:", error.message);
     throw new Error(error.message);
   }
 }
