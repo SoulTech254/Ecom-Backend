@@ -11,8 +11,15 @@ import {
   getPaginatedCategories,
   addProducts,
 } from "../controllers/category.controller.js";
+import { verifyRoles } from "../middlewares/verifyRoles.js";
+import { verifyAdminJWT } from "../middlewares/verifyAdminJWT.js";
 
-router.get("/", getAllCategories);
+router.get(
+  "/",
+  verifyAdminJWT,
+  verifyRoles("SuperAdmin", "admin"),
+  getAllCategories
+);
 
 router.get("/paginated", getPaginatedCategories);
 
@@ -20,10 +27,10 @@ router.post("/products", addProducts);
 
 router.get("/:id", getCategoryById);
 
-router.post("/", createCategory);
+router.post("/", verifyRoles("SuperAdmin"), createCategory);
 
-router.put("/:id", updateCategory);
+router.put("/:id", verifyRoles("SuperAdmin"), updateCategory);
 
-router.delete("/:id", deleteCategory);
+router.delete("/:id", verifyRoles("Admin", "SuperAdmin"), deleteCategory);
 
 export default router;

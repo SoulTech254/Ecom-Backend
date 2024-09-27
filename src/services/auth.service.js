@@ -1,5 +1,10 @@
 import User from "../models/user.model.js";
-import { generateRefreshToken, userExists } from "../utils/userUtils.js";
+import {
+  generateAdminAccessToken,
+  generateAdminRefreshToken,
+  generateRefreshToken,
+  userExists,
+} from "../utils/userUtils.js";
 import {
   generateVerificationCode,
   sendVerificationCode,
@@ -7,13 +12,20 @@ import {
 import bcrypt from "bcrypt";
 import { generateAccessToken } from "../utils/userUtils.js";
 import Cart from "../models/cart.models.js";
+import mongoose from "mongoose";
+import Admin from "../models/admin.model.js";
 
 export const createUser = async (userData) => {
   const { password, phoneNumber, ...rest } = userData;
 
+  // Start a session for the transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
+    console.log("Creating user with data:", userData);
     // Check if user already exists
-    const existingUser = await User.findOne({ phoneNumber });
+    const existingUser = await User.findOne({ phoneNumber }).session(session);
     if (existingUser) {
       throw new Error("User already exists");
     }
@@ -24,7 +36,8 @@ export const createUser = async (userData) => {
 
     // Create a new cart for the user
     const cart = new Cart();
-    await cart.save();
+    console.log("Saving new cart");
+    await cart.save({ session });
 
     // Create and save the new user with hashed password and cart reference
     const newUser = new User({
@@ -34,14 +47,25 @@ export const createUser = async (userData) => {
       verificationCode,
       cart: cart._id, // Assign cart _id to user's cart field
     });
-    await newUser.save();
+    console.log("Saving new user");
+    await newUser.save({ session });
 
     // Update the cart with the user reference
     cart.user = newUser._id; // Set the user reference in the cart
-    await cart.save();
+    console.log("Updating cart with user reference");
+    await cart.save({ session });
 
-    // // Send verification code to user's phone number
-    // await sendVerificationCode(`+254${phoneNumber}`, verificationCode);
+    // Send verification code to user's phone number (handle error after commit)
+    try {
+      console.log("Sending verification code to:", newUser.email);
+      await sendVerificationCode(newUser.email, verificationCode);
+      await session.commitTransaction();
+    } catch (error) {
+      // Abort the transaction if verification code cannot be sent
+      console.log("Failed to send verification code:", error.message);
+      await session.abortTransaction();
+      throw new Error("Failed to send verification code: " + error.message);
+    }
 
     // Omit sensitive fields from returned user object
     const {
@@ -49,12 +73,20 @@ export const createUser = async (userData) => {
       // verificationCode: code,
       ...user
     } = newUser.toObject();
+
+    // End the session
+    session.endSession();
+
+    console.log("Returning new user:", user);
     return user;
   } catch (error) {
+    // Abort transaction on any error before commit
+    console.log("Aborting transaction:", error.message);
+    await session.abortTransaction();
+    session.endSession(); // End the session after aborting
     throw new Error(error.message);
   }
 };
-
 /**
  * Verifies a user by matching the verification code with the user's stored verification code.
  *
@@ -171,6 +203,80 @@ export const resendOtp = async (phoneNumber) => {
     await user.save();
     await sendVerificationCode(`+254${phoneNumber}`, code);
   } catch (error) {
+    throw new Error(error.message);
+  }
+};
+export const createAdmin = async (details) => {
+  const { email, password, ...rest } = details;
+
+  // Check if the admin already exists
+  const foundUser = await Admin.findOne({ email });
+  if (foundUser) {
+    throw new Error("Administrator already exists");
+  }
+
+  try {
+    // Hash the password
+    const hashedPwd = await bcrypt.hash(password, 10);
+
+    // Create a new admin instance
+    const newAdmin = new Admin({
+      email,
+      password: hashedPwd,
+      ...rest,
+    });
+
+    // Save the new admin to the database
+    await newAdmin.save();
+
+    // Optionally return the new admin object without the password
+    const { password: _, ...adminData } = newAdmin.toObject();
+    return adminData;
+  } catch (error) {
+    throw new Error("Error creating admin: " + error.message);
+  }
+};
+
+export const loginAdmin = async (email, password) => {
+  console.log("Logging in admin with email:", email);
+
+  try {
+    const foundAdmin = await Admin.findOne({ email });
+    if (!foundAdmin) {
+      console.log("Admin does not exist in the database");
+      throw new Error("Admin Does Not Exist");
+    }
+
+    console.log("Admin exists, checking password...");
+    const match = await bcrypt.compare(password, foundAdmin.password);
+    if (!match) {
+      console.log("Password is invalid");
+      throw new Error("Invalid Credentials");
+    }
+
+    console.log("Password is valid, generating access token...");
+    const accessToken = generateAdminAccessToken(foundAdmin);
+
+    console.log("Generating refresh token...");
+    const refreshToken = generateAdminRefreshToken(foundAdmin);
+    console.log(refreshToken);
+
+    // Save the refresh token to the admin document
+    foundAdmin.refreshToken = refreshToken;
+    await foundAdmin.save();
+
+    console.log("Successfully logged in admin, returning data", foundAdmin);
+    return {
+      admin: {
+        name: foundAdmin.fName + foundAdmin.lName,
+        email: foundAdmin.email,
+        role: foundAdmin.role,
+      },
+      accessToken,
+      refreshToken,
+    };
+  } catch (error) {
+    console.error("An error occurred while logging in admin:", error.message);
     throw new Error(error.message);
   }
 };

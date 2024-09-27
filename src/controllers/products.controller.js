@@ -164,7 +164,6 @@ export const getBestSellersHandler = async (req, res, next) => {
 export const searchProductsHandler = async (req, res, next) => {
   try {
     const { query = "", page = 1, sortBy = "createdAt" } = req.query;
-
     const branchId = req.query.branchId;
 
     // Convert sortOrder to a number
@@ -182,11 +181,19 @@ export const searchProductsHandler = async (req, res, next) => {
       limit
     );
 
+    console.log(products)
+
+    // Check if products were found
+    if (products.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No products found matching your criteria." });
+    }
+
     // Send the response
     res.status(200).json({ products, metadata });
   } catch (error) {
-    console.error("Error searching products:", error);
-    res.status(500).json({ error: "Error searching products" });
+    next(error)
   }
 };
 

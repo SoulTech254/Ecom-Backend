@@ -7,7 +7,10 @@ import {
   updatePasswordHandler,
   resendOtpHandler,
   handleRefreshToken,
-  logoutHandler
+  logoutHandler,
+  registerAdminController,
+  loginAdminController,
+  handleAdminRefreshToken,
 } from "../controllers/auth.controller.js";
 
 const router = express.Router();
@@ -20,6 +23,8 @@ router.post("/sign-in", logInHandler);
 router.post("/resend-otp", resendOtpHandler);
 router.get("/refresh-token", handleRefreshToken);
 router.post("/logout", logoutHandler);
-
+router.post("/admin/register", registerAdminController);
+router.post("/admin/login", loginAdminController);
+router.get("/admin/refresh-token", handleAdminRefreshToken);
 
 export default router;

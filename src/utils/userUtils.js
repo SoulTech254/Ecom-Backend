@@ -19,6 +19,29 @@ export function generateAccessToken(User) {
 
 export function generateRefreshToken(User) {
   return jwt.sign({ email: User.email }, process.env.REFRESH_TOKEN_SECRET, {
-    expiresIn:  process.env.REFRESH_TOKEN_EXPIRATION_TIME,
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRATION_TIME,
   });
+}
+
+export function generateAdminAccessToken(foundAdmin) {
+  return jwt.sign(
+    {
+      AdminInfo: {
+        email: foundAdmin.email,
+        role: foundAdmin.role,
+      },
+    },
+    process.env.ADMIN_ACCESS_TOKEN_SECRET,
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRATION_TIME }
+  );
+}
+
+export function generateAdminRefreshToken(foundAdmin) {
+  return jwt.sign(
+    {
+      email: foundAdmin.email,
+    },
+    process.env.ADMIN_REFRESH_TOKEN_SECRET,
+    { expiresIn: process.env.ADMIN_REFRESH_TOKEN_EXPIRATION_TIME }
+  );
 }
