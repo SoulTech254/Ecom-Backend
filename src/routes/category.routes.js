@@ -21,16 +21,26 @@ router.get(
   getAllCategories
 );
 
-router.get("/paginated", getPaginatedCategories);
+router.get(
+  "/paginated",
+  verifyAdminJWT,
+  verifyRoles("admin"),
+  getPaginatedCategories
+);
 
-router.post("/products", addProducts);
+router.post("/products", verifyAdminJWT, verifyRoles("admin"), addProducts);
 
-router.get("/:id", getCategoryById);
+router.get("/:id", verifyAdminJWT, verifyRoles("admin"), getCategoryById);
 
-router.post("/", verifyRoles("SuperAdmin"), createCategory);
+router.post("/", verifyAdminJWT, verifyRoles("superAdmin"), createCategory);
 
-router.put("/:id", verifyRoles("SuperAdmin"), updateCategory);
+router.put("/:id", verifyAdminJWT, verifyRoles("superAdmin"), updateCategory);
 
-router.delete("/:id", verifyRoles("Admin", "SuperAdmin"), deleteCategory);
+router.delete(
+  "/:id",
+  verifyAdminJWT,
+  verifyRoles("admin", "superAdmin"),
+  deleteCategory
+);
 
 export default router;

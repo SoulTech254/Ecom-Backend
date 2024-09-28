@@ -11,12 +11,14 @@ import {
   updateStockController,
   deleteStockController,
 } from "../controllers/stocks.controller.js";
+import { verifyRoles } from "../middlewares/verifyRoles.js";
+import { verifyAdminJWT } from "../middlewares/verifyAdminJWT.js";
 
 const router = express.Router();
 
-router.post("/", postProductHandler);
-router.put("/:id", updateProductHandler);
-router.delete("/", deleteProductHandler);
+router.post("/", verifyAdminJWT, verifyRoles("admin"), postProductHandler);
+router.put("/:id", verifyAdminJWT, verifyRoles("admin"), updateProductHandler);
+router.delete("/", verifyAdminJWT, verifyRoles("admin"), deleteProductHandler);
 router.get("/:id", getProductHandler);
 router.get("/", getProductsPageHandler);
 

@@ -32,7 +32,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // CORS configuration
 const corsOptions = {
-  origin: ["http://localhost:5173", "https://edge-estate.onrender.com"],
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://edge-estate.onrender.com",
+  ],
   credentials: true,
 };
 

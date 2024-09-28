@@ -268,9 +268,10 @@ export const loginAdmin = async (email, password) => {
     console.log("Successfully logged in admin, returning data", foundAdmin);
     return {
       admin: {
-        name: foundAdmin.fName + foundAdmin.lName,
+        name: foundAdmin.firstName + foundAdmin.lastName,
         email: foundAdmin.email,
         role: foundAdmin.role,
+        branch: foundAdmin.branch,
       },
       accessToken,
       refreshToken,
