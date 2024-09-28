@@ -22,6 +22,8 @@ dotenv.config();
 console.log(process.env.MONGO_URL);
 mongoose.connect(process.env.MONGO_URL).then(() => {
   console.log("Database connected successfully!");
+}).catch(err => {
+  console.error("Database connection error:", err.message);
 });
 
 const app = express();
@@ -35,17 +37,15 @@ const corsOptions = {
   origin: [
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://ecom-frontend-7ymd.onrender.com/",
+    "https://ecom-frontend-7ymd.onrender.com",
   ],
   credentials: true,
 };
 
 app.use(cors(corsOptions));
 
-app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Private-Network", "true");
-  res.status(200).send();
-});
+// Options Preflight Response
+app.options("*", cors(corsOptions));
 
 const PORT = process.env.PORT || 9000;
 app.listen(PORT, () => {
