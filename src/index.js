@@ -35,7 +35,7 @@ const corsOptions = {
   origin: [
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://ecom-backend-qdwv.onrender.com",
+    "https://ecom-frontend-7ymd.onrender.com/",
   ],
   credentials: true,
 };
