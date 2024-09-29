@@ -8,8 +8,8 @@ import { verifyJWT } from "../middlewares/verifyJWT.js";
 
 const router = Router();
 
-router.post("/mpesa", verifyJWT, mpesaPaymentHandler);
+router.post("/mpesa", mpesaPaymentHandler);
 router.post("/mpesa/callback", callBackHandler);
 router.post("/mpesa/registerurl", registerURLHandler);
 
-export default router
+export default router;

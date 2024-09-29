@@ -10,6 +10,7 @@ import { getAccessToken } from "../utils/payment.utils.js";
 
 export const mpesaPaymentHandler = async (req, res, next) => {
   try {
+    console.log("Inside mpesaPaymentHandler");
     const {
       user,
       products,
@@ -22,7 +23,15 @@ export const mpesaPaymentHandler = async (req, res, next) => {
       branch,
     } = req.body;
 
-    console.log("deliveryAddress: ", deliveryAddress);
+    console.log("User: ", user);
+    console.log("Products: ", products);
+    console.log("Delivery Address: ", deliveryAddress);
+    console.log("Delivery Method: ", deliveryMethod);
+    console.log("Delivery Slot: ", deliverySlot);
+    console.log("Total Quantity: ", totalQuantity);
+    console.log("Total Amount: ", totalAmount);
+    console.log("Payment Account: ", paymentAccount);
+    console.log("Branch: ", branch);
 
     // Create a new order
     const newOrder = {
@@ -54,6 +63,7 @@ export const mpesaPaymentHandler = async (req, res, next) => {
     console.log("UserID", user.id);
     res.json(results);
   } catch (error) {
+    console.error(error);
     next(error);
   }
 };
@@ -91,14 +101,7 @@ export const callBackHandler = async (req, res, next) => {
     );
 
     if (updatedPayment.paymentStatus === "success") {
-      // Clear cart if payment is successful
-      const cart = await Cart.findOneAndUpdate(
-        { user: updatedPayment.user },
-        { $set: { products: [], totalQuantity: 0, totalAmount: 0 } },
-        { new: true } // Ensure to return the updated document
-      );
-
-      console.log("Cart updated: ", cart);
+      console.log("Success ");
     } else {
       // Delete order and payment if payment failed
       const order = await Order.findOne({ payment: updatedPayment._id });
