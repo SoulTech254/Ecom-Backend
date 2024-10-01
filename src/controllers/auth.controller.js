@@ -8,6 +8,7 @@ import {
   resendOtp,
   createAdmin,
   loginAdmin,
+  verifyRegisteredOTP,
 } from "../services/auth.service.js";
 import { userExists } from "../utils/userUtils.js";
 import User from "../models/user.model.js";
@@ -17,11 +18,6 @@ import mongoose from "mongoose";
 
 export const createUserHandler = async (req, res, next) => {
   try {
-    const { phoneNumber, ...rest } = req.body;
-    const exist = await userExists(phoneNumber);
-    if (exist) {
-      throw new Error("User already exists");
-    }
     console.log(req.body);
     const newUser = await createUser(req.body);
     res.status(201).json(newUser);
@@ -32,8 +28,8 @@ export const createUserHandler = async (req, res, next) => {
 
 export const verifyUserHandler = async (req, res, next) => {
   try {
-    const { phoneNumber, otp } = req.body;
-    const user = await verifyUser(phoneNumber, otp);
+    const { email, otp } = req.body;
+    const user = await verifyUser(email, otp);
     res.status(200).json(user);
   } catch (error) {
     next(error);
@@ -51,8 +47,8 @@ export const updateUserHandler = async (req, res, next) => {
 
 export const resetPasswordHandler = async (req, res, next) => {
   try {
-    const { phoneNumber } = req.body;
-    const password = await resetPassword(phoneNumber);
+    const { email } = req.body;
+    const password = await resetPassword(email);
     console.log(password);
     res.status(200).json("Password Updated");
   } catch (error) {
@@ -60,10 +56,21 @@ export const resetPasswordHandler = async (req, res, next) => {
   }
 };
 
+
+export const verifyRegisteredOTPHandler = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const isSuccess = await verifyRegisteredOTP(email, otp);
+    res.status(200).json(isSuccess)
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updatePasswordHandler = async (req, res, next) => {
   try {
-    const { phoneNumber, password } = req.body;
-    const pass = await updatePassword(phoneNumber, password);
+    const { email, password } = req.body;
+    const pass = await updatePassword(email, password);
     console.log(password);
     res.status(200).json("Password Updated");
   } catch (error) {
@@ -95,9 +102,8 @@ export async function logInHandler(req, res, next) {
 export const resendOtpHandler = async (req, res, next) => {
   try {
     console.log(req.body);
-    const { phoneNumber } = req.body;
-    console.log(phoneNumber);
-    const code = await resendOtp(phoneNumber);
+    const { email } = req.body;
+    const code = await resendOtp(email);
     res.status(200).json("OTP Resent");
   } catch (error) {
     next(error);

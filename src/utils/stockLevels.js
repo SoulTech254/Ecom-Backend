@@ -57,6 +57,7 @@ export const getProductsWithStockLevels = async (
   page = 1,
   limit = 10
 ) => {
+  console.log(searchQuery)
   try {
     const branchObjectId = ObjectId.createFromHexString(branchId);
 

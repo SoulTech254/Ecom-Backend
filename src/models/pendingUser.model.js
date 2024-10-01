@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
+const pendingUserSchema = new mongoose.Schema(
   {
     fName: {
       type: String,
@@ -21,20 +21,12 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
+      unique: true, // Ensure email is unique in this collection as well
     },
     password: {
       type: String,
       required: true,
     },
-    defaultAddress: {
-      type: String,
-    },
-    addresses: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Address",
-      },
-    ],
     toReceiveOffers: {
       type: Boolean,
       default: true,
@@ -42,24 +34,23 @@ const userSchema = new mongoose.Schema(
     DOB: {
       type: Date,
     },
-    agreeTerms: {
-      type: Boolean,
-    },
-    cart: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Cart",
-    },
     verificationCode: {
       type: Number,
-      expires: "10m",
+      required: true, // Code is necessary for verification
     },
-    refreshToken: {
-      type: String,
+    agreeTerms: {
+      type: Boolean,
+      required: true,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      expires: "10m",
     },
   },
   { timestamps: true }
 );
 
-const User = mongoose.model("User", userSchema);
+const PendingUser = mongoose.model("PendingUser", pendingUserSchema);
 
-export default User;
+export default PendingUser;
