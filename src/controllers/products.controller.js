@@ -23,7 +23,7 @@ export const postProductHandler = async (req, res, next) => {
 };
 
 export const getProductsPageHandler = [
-  pagination(Product, {}, {}, ["productName", "SKU"]),
+  pagination(Product, {}, {}, ["productName"]),
   (req, res) => {
     res.json(res.paginatedResults);
   },
@@ -163,12 +163,20 @@ export const getBestSellersHandler = async (req, res, next) => {
 
 export const searchProductsHandler = async (req, res, next) => {
   try {
+    console.log("Search products handler called");
+    console.log("Query:", req.query);
+
     const { query = "", page = 1, sortBy = "createdAt" } = req.query;
     const branchId = req.query.branchId;
+
+    console.log("branchId:", branchId);
 
     // Convert sortOrder to a number
     const sortOrder = parseInt(req.query.sortOrder, 10) || -1;
     const limit = parseInt(req.query.limit, 10) || 10;
+
+    console.log("sortOrder:", sortOrder);
+    console.log("limit:", limit);
 
     // Call the function with the parameters
     const { products, metadata } = await getProductsWithStockLevels(
@@ -181,10 +189,11 @@ export const searchProductsHandler = async (req, res, next) => {
       limit
     );
 
-    console.log(products)
+    console.log("products:", products);
 
     // Check if products were found
     if (products.length === 0) {
+      console.log("No products found matching your criteria.");
       return res
         .status(404)
         .json({ error: "No products found matching your criteria." });
@@ -193,7 +202,8 @@ export const searchProductsHandler = async (req, res, next) => {
     // Send the response
     res.status(200).json({ products, metadata });
   } catch (error) {
-    next(error)
+    console.error(error);
+    next(error);
   }
 };
 
