@@ -2,6 +2,7 @@ import Address from "../models/address.model.js";
 import Cart from "../models/cart.models.js";
 import User from "../models/user.model.js";
 import { findNearestBranch } from "../utils/branch.utils.js";
+import { checkProductAvailability } from "../utils/stockLevels.js";
 
 export const initiateCheckout = async ({
   cart,
@@ -10,6 +11,8 @@ export const initiateCheckout = async ({
   user,
   branch,
 }) => {
+  console.log("initiateCheckout() called");
+
   // Fetch documents from database
   const cartDocument = await Cart.findById(cart)
     .populate("products.product")
@@ -27,10 +30,8 @@ export const initiateCheckout = async ({
   // Determine the delivery slot
   let deliverySlot;
   if (delivery.method === "express") {
-    // Set the delivery slot to 30 minutes after payment
     deliverySlot = getThirtyMinutesAfterPayment();
   } else {
-    // Use the provided delivery slot for other methods
     deliverySlot = delivery.deliverySlot;
   }
 
@@ -42,7 +43,22 @@ export const initiateCheckout = async ({
     );
   }
 
-  console.log("Nearest Branch: ", nearestBranch);
+  // Check product availability
+  const { adjustedProducts, adjustments } = await checkProductAvailability(
+    cartDocument.products,
+    nearestBranch ? nearestBranch._id : branch
+  );
+
+  // Calculate total savings and total amount based on adjusted products
+  const totalSavings = adjustedProducts.reduce((total, item) => {
+    const productPrice = item.product.price; // Assuming the product has a price field
+    const discountPrice = item.product.discountPrice || productPrice; // Fallback to price if discountPrice is not available
+    return total + (productPrice - discountPrice) * item.quantity;
+  }, 0);
+
+  const totalAmount = adjustedProducts.reduce((total, item) => {
+    return total + item.subtotal; // subtotal should already be calculated in the adjusted products
+  }, 0);
 
   // Create order summary object
   const orderSummary = {
@@ -68,7 +84,7 @@ export const initiateCheckout = async ({
     deliveryMethod: delivery.method,
     deliverySlot: deliverySlot,
     branch: nearestBranch ? nearestBranch._id : branch,
-    products: cartDocument.products.map((item) => ({
+    products: adjustedProducts.map((item) => ({
       id: item.product._id,
       image: item.product.images[0],
       name: item.product.productName,
@@ -76,16 +92,15 @@ export const initiateCheckout = async ({
       price: item.product.discountPrice,
       subtotal: item.subtotal,
     })),
-    totalQuantity: cartDocument.totalQuantity,
-    originalAmount: cartDocument.totalAmount,
-    totalSavings: cartDocument.totalSavings,
-    totalAmount: cartDocument.totalAmount,
+    totalQuantity: adjustedProducts.reduce((total, item) => total + item.quantity, 0),
+    totalSavings: totalSavings, // Total savings calculated from adjusted products
+    totalAmount: totalAmount, // Total amount calculated from adjusted products
     paymentMethod: payment.paymentMethod,
     paymentAccount: payment.paymentAccount,
+    adjustments: adjustments.length > 0 ? adjustments : undefined, // Include adjustments if any
   };
 
   console.log("Order summary:", orderSummary);
-  console.log("Payment: ", payment);
 
   return orderSummary;
 };

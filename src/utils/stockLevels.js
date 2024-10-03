@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Product from "../models/products.models.js";
+import Stock from "../models/stocks.model.js";
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -57,7 +58,7 @@ export const getProductsWithStockLevels = async (
   page = 1,
   limit = 10
 ) => {
-  console.log(searchQuery)
+  console.log(searchQuery);
   try {
     const branchObjectId = ObjectId.createFromHexString(branchId);
 
@@ -224,4 +225,50 @@ export const getProductWithStockLevel = async (productId, branchId) => {
     console.error("Error getting product with stock level:", error);
     throw new Error("Error getting product with stock level!");
   }
+};
+
+export const checkProductAvailability = async (products, branchId) => {
+  console.log("Entering checkProductAvailability function");
+  const adjustments = []; // To store messages about adjustments
+  const adjustedProducts = []; // To store adjusted product quantities
+
+  for (const item of products) {
+    console.log(`Checking availability for ${item.product.productName}`);
+
+    const stock = await Stock.findOne({
+      productId: item.product._id,
+      branchId: branchId,
+    });
+
+    if (!stock || stock.stockLevel === 0) {
+      console.log(`No stock found for ${item.product.productName}`);
+      adjustments.push(
+        `${item.product.productName} is out of stock and has been removed from your cart.`
+      );
+      continue; // Skip this item
+    }
+
+    console.log(
+      `Stock found for ${item.product.productName}: ${stock.stockLevel}`
+    );
+
+    // Adjust quantity if needed
+    if (stock.stockLevel < item.quantity) {
+      console.log(
+        `Insufficient stock for ${item.product.productName}. Available: ${stock.stockLevel}, Requested: ${item.quantity}`
+      );
+      adjustments.push(
+        `Adjusted ${item.product.productName} quantity from ${item.quantity} to ${stock.stockLevel}.`
+      );
+      adjustedProducts.push({
+        ...item,
+        quantity: stock.stockLevel, // Adjust the quantity to available stock
+      });
+    } else {
+      adjustedProducts.push(item); // Keep the original item if sufficient stock is available
+    }
+  }
+
+  console.log("Exiting checkProductAvailability function");
+  return { adjustedProducts, adjustments }; // Return both adjusted products and messages
 };
