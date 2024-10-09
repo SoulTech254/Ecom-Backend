@@ -32,9 +32,9 @@ router.post("/products", verifyAdminJWT, verifyRoles("admin"), addProducts);
 
 router.get("/:id", verifyAdminJWT, verifyRoles("admin"), getCategoryById);
 
-router.post("/", verifyAdminJWT, verifyRoles("superAdmin"), createCategory);
+router.post("/", verifyAdminJWT, verifyRoles("admin"), createCategory);
 
-router.put("/:id", verifyAdminJWT, verifyRoles("superAdmin"), updateCategory);
+router.put("/:id", verifyAdminJWT, verifyRoles("admin"), updateCategory);
 
 router.delete(
   "/:id",

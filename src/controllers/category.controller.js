@@ -417,21 +417,48 @@ export const getCategoryById = async (req, res, next) => {
 
 // Create a new category
 export const createCategory = async (req, res, next) => {
-  const { name, description, parent, imageUrl } = req.body;
+  const { name, description, parent, imageUrl, bannerImageUrl } = req.body;
+
+  // Log input details
+  console.log("Incoming request body for creating category:", req.body);
+  console.log("Creating category with name:", name);
+  console.log("Creating category with description:", description);
+  console.log("Creating category with parent:", parent);
+  console.log("Creating category with imageUrl:", imageUrl);
+  console.log("Creating category with bannerImageUrl:", bannerImageUrl);
 
   try {
+    console.log("Checking for existing category with name:", name);
+
     // Check if a category with the same name already exists
     const existingCategory = await findCategoryByName(name);
+    console.log("Existing category check result:", existingCategory);
 
     if (existingCategory) {
-      throw new Error("Category with the same name already exists");
+      console.log("Category already exists:", existingCategory);
+      return res
+        .status(400)
+        .json({ message: "Category with the same name already exists" });
     }
 
+    console.log(
+      "No existing category found. Proceeding to create new category:",
+      name
+    );
+
     // Proceed to create the new category if it doesn't exist
-    const newCategory = await addCategory(name, description, parent, imageUrl);
+    const newCategory = await addCategory(
+      name,
+      description,
+      bannerImageUrl,
+      parent,
+      imageUrl
+    );
+    console.log("New category created:", newCategory);
 
     res.status(201).json(newCategory);
   } catch (error) {
+    console.error("Error creating category:", error);
     next(error);
   }
 };
@@ -440,7 +467,13 @@ export const createCategory = async (req, res, next) => {
 export const updateCategory = async (req, res, next) => {
   try {
     const categoryId = req.params.id;
-    const { name, description, parent: newParentId, imageUrl } = req.body;
+    const {
+      name,
+      description,
+      parent: newParentId,
+      imageUrl,
+      bannerImageUrl,
+    } = req.body;
 
     // Find the current category
     const category = await Category.findById(categoryId);
@@ -448,9 +481,11 @@ export const updateCategory = async (req, res, next) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
+    console.log("Updating category:", category);
+
     // Check if the parent is changing
     const parentChanged =
-      newParentId && category.parent.toString() !== newParentId.toString();
+      newParentId && category.parent?.toString() !== newParentId.toString();
 
     // If the parent has changed, update the path field
     if (parentChanged) {
@@ -461,6 +496,8 @@ export const updateCategory = async (req, res, next) => {
           .status(404)
           .json({ message: "New parent category not found" });
       }
+
+      console.log("New parent category:", newParentCategory);
 
       // Set the new path
       category.path = newParentCategory.path.concat(newParentId);
@@ -474,11 +511,15 @@ export const updateCategory = async (req, res, next) => {
     category.name = name || category.name;
     category.description = description || category.description;
     category.imageUrl = imageUrl || category.imageUrl;
+    category.bannerImageUrl = bannerImageUrl;
+
+    console.log("Updated category:", category);
 
     // Save the updated category
     const updatedCategory = await category.save();
     res.json(updatedCategory);
   } catch (err) {
+    console.error("Error updating category:", err);
     next(err);
   }
 };

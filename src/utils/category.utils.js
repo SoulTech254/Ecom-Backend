@@ -19,34 +19,52 @@ export const populateCategoryAncestors = async (categoryId, depth = 0) => {
 
 export const addCategory = async (
   name,
-  description,
+  description = null,
+  bannerImageUrl = null,
   parent = null,
-  imageUrl
+  imageUrl = null
 ) => {
   try {
+    console.log("Creating category in addCategory function:");
+    console.log("Category name:", name);
+    console.log("Description:", description);
+    console.log("Parent ID:", parent);
+    console.log("Image URL:", imageUrl);
+    console.log("Banner Image URL:", bannerImageUrl);
+
     let parentPath = [];
 
     if (parent) {
+      console.log("Finding parent category with ID:", parent);
       // Find the parent category and get its path
       const parentCategory = await Category.findById(parent).exec();
       if (!parentCategory) {
+        console.error("Parent category not found for ID:", parent);
         throw new Error("Parent category not found");
       }
       parentPath = parentCategory.path || []; // Get the path from the parent category
+      console.log("Found parent category:", parentCategory);
+      console.log("Parent category path:", parentPath);
     }
 
     // Create a new category with the updated path
     const newCategory = new Category({
       name,
       description,
-      parent: parent,
+      parent,
       imageUrl,
+      bannerImageUrl,
       path: parentPath.concat(parent || []), // Append the parent ID to the path
     });
 
+    console.log("Prepared new category object for saving:", newCategory);
+
+    // Save the new category
     await newCategory.save();
+    console.log("New category saved successfully:", newCategory);
     return newCategory;
   } catch (error) {
+    console.error("Error creating category in addCategory function:", error);
     throw error;
   }
 };

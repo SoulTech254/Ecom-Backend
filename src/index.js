@@ -39,6 +39,7 @@ const corsOptions = {
     "http://localhost:5174",
     "https://ecom-frontend-7ymd.onrender.com",
   ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 };
 

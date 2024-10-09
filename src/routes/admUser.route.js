@@ -10,7 +10,7 @@ import { verifyJWT } from "../middlewares/verifyJWT.js";
 const router = Router();
 
 router.get("/", getUsersPageHandler);
-router.get("/:id/orders", verifyJWT, getUserOrdersHandler);
+router.get("/:id/orders", getUserOrdersHandler);
 router.put("/:id", updateUserHandler);
 router.get("/:id", getUserHandler);
 // router.delete("/", deleteProductHandler);

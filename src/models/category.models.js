@@ -8,6 +8,7 @@ const categorySchema = new Schema(
     parent: { type: Schema.Types.ObjectId, ref: "Category", default: null },
     path: { type: [mongoose.Schema.Types.ObjectId], ref: "Category" },
     imageUrl: String,
+    bannerImageUrl: String,
   },
   { timestamps: true }
 );
