@@ -64,6 +64,7 @@ export const getProductsWithStockLevels = async (
 
     // Incorporate search query into the criteria using $regex for partial matches
     if (searchQuery) {
+      searchQuery = searchQuery.trim();
       criteria.productName = { $regex: searchQuery, $options: "i" };
     }
 

@@ -15,6 +15,10 @@ const stockLevel = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  SKU:{
+    type:String,
+    required:true
+  }
 });
 
 const Stock = mongoose.model('Stock', stockLevel);

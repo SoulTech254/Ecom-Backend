@@ -157,3 +157,62 @@ export const deleteStockController = async (req, res) => {
     next(error);
   }
 };
+
+export const createStockLevelsForAllBranches = async () => {
+  console.log("Entering createStockLevelsForAllBranches function");
+  try {
+    // Fetch all branches
+    const branches = await Branch.find({});
+    console.log(`Fetched ${branches.length} branches.`);
+    // Fetch all products
+    const products = await Product.find({});
+    console.log(`Fetched ${products.length} products.`);
+
+    // Prepare an array to hold stock entries
+    const stockEntries = [];
+
+    // Function to generate a random stock level
+    const getRandomStockLevel = (min = 0, max = 50) => {
+      return Math.floor(Math.random() * (max - min + 1)) + min; // Generate a random number between min and max
+    };
+
+    // Loop through each branch and each product
+    branches.forEach((branch) => {
+      console.log(`Processing branch: ${branch._id}`);
+      // Validate the branch ID
+      if (!mongoose.Types.ObjectId.isValid(branch._id)) {
+        console.error(`Invalid branch ID: ${branch._id}`);
+        return; // Skip this branch if invalid
+      }
+
+      products.forEach((product) => {
+        console.log(`Processing product: ${product._id}`);
+        // Validate the product ID
+        if (!mongoose.Types.ObjectId.isValid(product._id)) {
+          console.error(`Invalid product ID: ${product._id}`);
+          return; // Skip this product if invalid
+        }
+
+        // Push valid stock entries
+        stockEntries.push({
+          productId: product._id,
+          branchId: branch._id,
+          stockLevel: getRandomStockLevel(0, 50), // Random stock level between 0 and 50
+          SKU: product.SKU, // Reference the product's SKU
+        });
+      });
+    });
+
+    // Insert all stock entries in bulk, only if there are valid entries
+    if (stockEntries.length > 0) {
+      await Stock.insertMany(stockEntries);
+      console.log(
+        `Successfully created stock levels for ${products.length} products across ${branches.length} branches.`
+      );
+    } else {
+      console.warn("No valid stock entries to insert.");
+    }
+  } catch (error) {
+    console.error("Error creating stock levels:", error);
+  }
+};

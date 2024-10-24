@@ -10,6 +10,7 @@ import {
   addStockController,
   updateStockController,
   deleteStockController,
+  createStockLevelsForAllBranches,
 } from "../controllers/stocks.controller.js";
 import { verifyRoles } from "../middlewares/verifyRoles.js";
 import { verifyAdminJWT } from "../middlewares/verifyAdminJWT.js";
@@ -24,6 +25,7 @@ router.get("/", getProductsPageHandler);
 
 // Route to add a new stock entry
 router.post("/stocks", addStockController);
+router.post("/stocks/new", createStockLevelsForAllBranches);
 // Route to update an existing stock entry
 router.put("/stocks/:id", updateStockController);
 // Route to delete a stock entry
