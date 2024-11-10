@@ -19,62 +19,78 @@ export const findOrders = async (userId, method = null) => {
       query["delivery.method"] = method;
     }
 
+    // Find orders based on the query
     const orders = await Order.find(query)
       .populate({
-        path: "products.id",
+        path: "products.id", // Populate the product details
         model: "Product",
         select: "productName description price images discountPrice", // Specify fields to select from Product
       })
       .populate({
-        path: "delivery.address",
+        path: "delivery.address", // Populate the delivery address
       })
       .populate({
-        path: "branch",
-        select: "name address",
+        path: "branch", // Populate the branch details
+        select: "name address", // Specify fields to select from Branch
       })
       .exec();
 
-    return orders;
+    return orders; // Return the found orders
   } catch (error) {
-    throw error; // Re-throw the error for handling in the controller
+    // Handle error and throw with custom message and status code
+    const err = new Error(error.message || "Error finding orders");
+    err.statusCode = error.statusCode || 500;
+    throw err; // Re-throw the error to be handled by controller middleware
   }
 };
 
-// src/services/orderService.js
+import mongoose from "mongoose";
 
 export const updateOrderStatusByUser = async (orderId, newStatus) => {
-  // Define filter to match by _id
-  const filter = { _id: orderId };
-  console.log("Service - Filter:", JSON.stringify(filter, null, 2));
-  console.log("Service - New Status:", newStatus);
+  const session = await mongoose.startSession(); // Start a transaction session
+  try {
+    session.startTransaction(); // Start the transaction
 
-  // Update status of the specified order
-  const updateResult = await Order.updateOne(filter, {
-    $set: { status: newStatus },
-  });
+    // Define filter to match by _id
+    const filter = { _id: orderId };
 
-  console.log("Service - Update Result:", updateResult);
+    // Update status of the specified order within the transaction
+    const updateResult = await Order.updateOne(filter, {
+      $set: { status: newStatus },
+    }).session(session); // Attach session to the query
 
-  // Retrieve and return the updated document
-  if (updateResult.matchedCount === 0) {
-    // If no document was matched, return null or handle the case accordingly
-    console.log("Service - No document found with the given ID");
-    return null;
+    // Check if the order was found and updated
+    if (updateResult.matchedCount === 0) {
+      throw new Error("Order not found or not updated");
+    }
+
+    // Retrieve the updated order document with populated fields
+    const updatedDocument = await Order.findOne(filter)
+      .populate("user")
+      .populate("delivery.address")
+      .populate("branch")
+      .populate("payment")
+      .populate("logistics")
+      .session(session); // Attach session to the query
+
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
+
+    return updatedDocument; // Return the updated order document
+  } catch (error) {
+    // Rollback the transaction in case of any error
+    await session.abortTransaction();
+    session.endSession();
+
+    // Throw the error with a custom message
+    throw new Error(error.message || "Error updating order status");
   }
-
-  const updatedDocument = await Order.findOne(filter)
-    .populate("user")
-    .populate("delivery.address")
-    .populate("branch")
-    .populate("payment")
-    .populate("logistics");
-  console.log("Service - Updated Document:", updatedDocument);
-
-  return updatedDocument;
 };
+
 export const getOrder = async (orderId) => {
   try {
-    console.log("Finding order by ID:", orderId);
+    // Attempt to find the order by ID and populate relevant fields
     const order = await Order.findById(orderId)
       .populate("user")
       .populate("delivery.address")
@@ -83,11 +99,15 @@ export const getOrder = async (orderId) => {
       .populate("payment")
       .populate("logistics")
       .exec();
-    console.log("Order found:", order);
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
     return order;
   } catch (error) {
-    console.error("Error retrieving order from service:", error);
-    throw new Error("Error retrieving order.");
+    // Catch and throw an error with a custom message
+    throw new Error(error.message || "Error retrieving order.");
   }
 };
 
@@ -98,9 +118,9 @@ export const getOrdersService = async ({
   sortOption,
   deliverySlot,
   status,
-  method, // Updated parameter name
-  startDate, // Updated parameter name
-  endDate, // Updated parameter name
+  method,
+  startDate,
+  endDate,
 }) => {
   const startIndex = (page - 1) * limit;
 
@@ -157,50 +177,55 @@ export const getOrdersService = async ({
   const countFilter =
     searchConditions.length > 0 ? { $and: searchConditions } : {};
 
-  const totalCount = await Order.countDocuments(countFilter).exec();
+  try {
+    const totalCount = await Order.countDocuments(countFilter).exec();
 
-  let queryBuilder =
-    searchConditions.length > 0
-      ? Order.find({ $and: searchConditions })
-      : Order.find({});
+    let queryBuilder =
+      searchConditions.length > 0
+        ? Order.find({ $and: searchConditions })
+        : Order.find({});
 
-  if (sortOption === "newest") {
-    queryBuilder = queryBuilder.sort({ createdAt: -1 });
-  } else if (sortOption === "oldest") {
-    queryBuilder = queryBuilder.sort({ createdAt: 1 });
-  } else if (sortOption === "bestmatch") {
-    queryBuilder = queryBuilder.sort({ "products.productName": 1 });
+    // Sorting based on the sortOption parameter
+    if (sortOption === "newest") {
+      queryBuilder = queryBuilder.sort({ createdAt: -1 });
+    } else if (sortOption === "oldest") {
+      queryBuilder = queryBuilder.sort({ createdAt: 1 });
+    } else if (sortOption === "bestmatch") {
+      queryBuilder = queryBuilder.sort({ "products.productName": 1 });
+    }
+
+    queryBuilder = queryBuilder.skip(startIndex).limit(limit);
+
+    // Execute query and populate references
+    const results = await queryBuilder.exec();
+
+    await Order.populate(results, [
+      { path: "user" },
+      { path: "delivery.address" },
+      { path: "products.id" },
+      { path: "branch" },
+      { path: "payment" },
+    ]);
+
+    return {
+      metadata: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+      results,
+      next: startIndex + limit < totalCount ? { page: page + 1, limit } : null,
+      previous: startIndex > 0 ? { page: page - 1, limit } : null,
+    };
+  } catch (error) {
+    throw new Error(error.message || "Error retrieving orders.");
   }
-
-  queryBuilder = queryBuilder.skip(startIndex).limit(limit);
-
-  const results = await queryBuilder.exec();
-
-  // Populate references
-  await Order.populate(results, [
-    { path: "user" },
-    { path: "delivery.address" },
-    { path: "products.id" },
-    { path: "branch" },
-    { path: "payment" },
-  ]);
-
-  return {
-    metadata: {
-      page,
-      limit,
-      totalCount,
-      totalPages: Math.ceil(totalCount / limit),
-    },
-    results,
-    next: startIndex + limit < totalCount ? { page: page + 1, limit } : null,
-    previous: startIndex > 0 ? { page: page - 1, limit } : null,
-  };
 };
 
 export const updateOrderLogistics = async (orderId, newLogisticId) => {
   try {
-    // Find and update the order by ID
+    // Find and update the order by ID, setting the new logistics information
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
       { $set: { logistics: newLogisticId } },
@@ -211,8 +236,7 @@ export const updateOrderLogistics = async (orderId, newLogisticId) => {
       .populate("products.id")
       .populate("branch")
       .populate("delivery.address")
-      .populate("payment"
-      )
+      .populate("payment");
 
     // Check if the order was found and updated
     if (!updatedOrder) {
@@ -221,7 +245,6 @@ export const updateOrderLogistics = async (orderId, newLogisticId) => {
 
     return updatedOrder;
   } catch (error) {
-    console.error("Error updating order logistics:", error);
-    throw new Error(error.message);
+    throw new Error(error.message || "Error updating order logistics.");
   }
 };

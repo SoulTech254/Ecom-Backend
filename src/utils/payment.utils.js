@@ -1,6 +1,7 @@
 export async function getAccessToken() {
   const consumer_key = process.env.MPESA_CONSUMER_KEY;
   const consumer_secret = process.env.MPESA_CONSUMER_SECRET;
+  console.log(btoa(consumer_key + ":" + consumer_secret));
   const url =
     "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials";
   const auth = "Basic " + btoa(consumer_key + ":" + consumer_secret);
@@ -65,4 +66,3 @@ export const generateOrderId = () => {
 // Example usage
 const orderId = generateOrderId();
 console.log(orderId); // Example output: 'ord20240708bhsP5Xz'
-

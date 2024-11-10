@@ -17,6 +17,8 @@ import Admin from "../models/admin.model.js";
 import PendingUser from "../models/pendingUser.model.js";
 
 export const createUser = async (userData) => {
+  console.log("Creating new user with data:", userData);
+
   const { password, email, ...rest } = userData;
 
   // Start a session for the transaction
@@ -25,24 +27,37 @@ export const createUser = async (userData) => {
 
   try {
     // Check if the user already exists in PendingUser or User collections
-    const existingPendingUser = await PendingUser.findOne({
-      email,
-    }).session(session);
+    console.log(
+      "Checking if user already exists in PendingUser or User collections"
+    );
+    const existingPendingUser = await PendingUser.findOne({ email }).session(
+      session
+    );
     const existingUser = await User.findOne({ email }).session(session);
+
     if (existingPendingUser) {
-      throw new Error(
+      console.log("User already registered. Please Enter Verification Code");
+      const err = new Error(
         "User already registered. Please Enter Verification Code"
       );
+      err.statusCode = 400; // You can customize the status code here (e.g., 400 for bad request)
+      throw err;
     }
+
     if (existingUser) {
-      throw new Error("User already exists. Login");
+      console.log("User already exists. Login");
+      const err = new Error("User already exists. Login");
+      err.statusCode = 409; // Conflict status for already existing user
+      throw err;
     }
 
     // Hash password and generate verification code
+    console.log("Hashing password and generating verification code");
     const hashedPassword = bcrypt.hashSync(password, 10);
     const verificationCode = generateVerificationCode();
 
     // Create and save the pending user with hashed password
+    console.log("Creating and saving the pending user with hashed password");
     const newPendingUser = new PendingUser({
       ...rest,
       password: hashedPassword,
@@ -52,29 +67,44 @@ export const createUser = async (userData) => {
     await newPendingUser.save({ session });
 
     // Send verification code to user's phone number (handle error after commit)
+    console.log("Sending verification code to user's phone number");
     try {
       await sendVerificationCode(newPendingUser.email, verificationCode);
       await session.commitTransaction();
     } catch (error) {
       // Abort the transaction if verification code cannot be sent
+      console.log("Error sending verification code:", error.message);
       await session.abortTransaction();
-      throw new Error("Failed to send verification code ");
+
+      // Throw error with custom message and status code
+      const err = new Error("Failed to send verification code");
+      err.statusCode = 500; // Internal server error if the sending fails
+      throw err;
     }
 
     // Omit sensitive fields from returned user object
     const { password: pass, ...pendingUser } = newPendingUser.toObject();
 
     // End the session
+    console.log("Ending the session");
     session.endSession();
 
     return pendingUser;
   } catch (error) {
     // Abort transaction on any error before commit
+    console.log("Error creating user:", error.message);
     await session.abortTransaction();
     session.endSession(); // End the session after aborting
+
+    // If the error is already thrown with a message and status code, propagate that error
+    if (error.statusCode) {
+      throw error; // Re-throw the error as it is
+    }
+
+    // If the error doesn't have a status code (e.g., unexpected error), create a new one
     const err = new Error("Internal Server Error. Please Try Again");
     err.statusCode = 500;
-    return err;
+    throw err;
   }
 };
 
@@ -87,31 +117,25 @@ export const verifyUser = async (email, code) => {
     const pendingUser = await PendingUser.findOne({ email }).session(session);
     if (!pendingUser) {
       const error = new Error("Verification expired");
-      error.statusCode = 400; // Set specific status code
+      error.statusCode = 400; // Specific error for expired verification
       throw error;
     }
-
-    console.log("Found pending user:", pendingUser);
 
     // Step 2: Verify the code
     if (Number(pendingUser.verificationCode) !== Number(code)) {
       const error = new Error("Invalid verification code");
-      error.statusCode = 400; // Set specific status code
+      error.statusCode = 400; // Specific error for invalid code
       throw error;
     }
 
-    console.log(
-      "Verification code is valid. Creating new user in User collection."
-    );
-
+    // Step 3: Create a new cart
     const cart = new Cart();
     try {
-      console.log("Saving new cart");
       await cart.save({ session });
-      console.log("New cart saved successfully:", cart);
     } catch (error) {
-      console.log("Error saving cart:", error.message);
-      throw new Error("Error saving cart");
+      const err = new Error("Error saving cart");
+      err.statusCode = 500; // Internal server error if cart can't be saved
+      throw err;
     }
 
     // Step 4: Create the user in the User collection
@@ -128,42 +152,33 @@ export const verifyUser = async (email, code) => {
       agreeTerms: pendingUser.agreeTerms,
     });
 
-    console.log("Saving new user");
     await newUser.save({ session });
 
-    console.log("New user saved. Updating cart with new user reference.");
-    cart.user = newUser._id; // Now we can set the user reference
+    // Step 5: Update the cart with new user reference
+    cart.user = newUser._id;
     await cart.save({ session });
 
-    console.log("New cart saved. Removing pending user document.");
     // Step 6: Remove the pending user document
     await PendingUser.deleteOne({
       phoneNumber: pendingUser.phoneNumber,
     }).session(session);
 
-    console.log("Pending user document removed. Committing transaction.");
     // Commit the transaction
     await session.commitTransaction();
 
-    console.log(
-      "Transaction committed. Omitting sensitive fields from returned user object"
-    );
-
     // Omit sensitive fields from returned user object
     const { password: pass, ...user } = newUser.toObject();
-
-    console.log("Returning user:", user);
 
     // End the session
     session.endSession();
 
     return { success: true, user }; // Return a success response
   } catch (error) {
-    console.log("Verification failed:", error.message);
+    // Log the error and abort the transaction
     await session.abortTransaction();
     session.endSession();
 
-    // If no statusCode is set, default to 500
+    // Re-throw the error with proper status code if it has one, otherwise default to 500
     const err = new Error(
       error.message || "Internal Server Error. Please Try Again"
     );
@@ -173,53 +188,148 @@ export const verifyUser = async (email, code) => {
 };
 
 export const verifyRegisteredOTP = async (email, code) => {
-  const user = await User.findOne({ verificationCode: code });
-  if (!user) {
-    throw new Error("Expired Verification Code");
-  }
+  // Start a session for the transaction (though not strictly needed for this particular operation)
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (Number(code) !== Number(user.verificationCode)) {
-    throw new Error("Invalid Verification Code");
-  }
+  try {
+    // Step 1: Check if the user exists with the given verification code
+    const user = await User.findOne({ verificationCode: code }).session(
+      session
+    );
 
-  return { success: true };
+    // Step 2: Handle case where the user with the provided verification code doesn't exist
+    if (!user) {
+      const error = new Error("Expired Verification Code");
+      error.statusCode = 400; // Bad request error for expired code
+      throw error;
+    }
+
+    // Step 3: Verify that the code matches the user's stored verification code
+    if (Number(code) !== Number(user.verificationCode)) {
+      const error = new Error("Invalid Verification Code");
+      error.statusCode = 400; // Bad request error for invalid code
+      throw error;
+    }
+
+    // Step 4: If everything is valid, return a success response
+    await session.commitTransaction(); // Commit the transaction (even though no changes to save)
+
+    // Step 5: End the session
+    session.endSession();
+
+    return { success: true }; // Return success response after verification
+  } catch (error) {
+    // Handle any errors and rollback the transaction
+    await session.abortTransaction(); // Abort transaction on any error
+
+    // End the session
+    session.endSession();
+
+    // If no specific status code is set, default to 500 (Internal Server Error)
+    const err = new Error(
+      error.message || "Internal Server Error. Please Try Again"
+    );
+    err.statusCode = error.statusCode || 500;
+    throw err; // Re-throw the error to be caught by the global error handler
+  }
 };
 
 export const updateUser = async (data) => {
+  // Start a session for the transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
+    // Step 1: Attempt to update the user in the PendingUser collection
     const updatedUser = await PendingUser.findOneAndUpdate(
       { phoneNumber: data.phoneNumber },
       data,
       {
-        new: true,
+        new: true, // Return the updated document
+        session, // Use session for transaction consistency
       }
     );
-    return updatedUser;
+
+    // Step 2: Check if the user was found and updated
+    if (!updatedUser) {
+      const error = new Error("User not found");
+      error.statusCode = 404; // Not found error
+      throw error;
+    }
+
+    // Step 3: Commit the transaction
+    await session.commitTransaction();
+
+    // Step 4: End the session
+    session.endSession();
+
+    return updatedUser; // Return the updated user information
   } catch (error) {
-    const err = new Error("Internal Server Error. Please Try Again");
-    err.statusCode = 500;
-    return err;
+    // Step 5: Abort the transaction if there's an error
+    await session.abortTransaction();
+
+    // Step 6: End the session after the transaction is aborted
+    session.endSession();
+
+    // If no specific status code is set, default to 500 (Internal Server Error)
+    const err = new Error(
+      error.message || "Internal Server Error. Please Try Again"
+    );
+    err.statusCode = error.statusCode || 500;
+    throw err; // Re-throw the error to be handled globally
   }
 };
 
 export const resetPassword = async (email) => {
+  // Start a session for the transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const user = await User.findOne({ email });
+    // Step 1: Check if the user exists in the User collection
+    const user = await User.findOne({ email }).session(session);
     if (!user) {
-      throw new Error("User not found");
+      const error = new Error("User not found");
+      error.statusCode = 404; // Not found error
+      throw error; // If user doesn't exist, throw an error
     }
+
+    // Step 2: Generate a new verification code
     const code = generateVerificationCode();
     user.verificationCode = code;
-    await user.save();
+
+    // Step 3: Save the updated user with the new verification code
+    await user.save({ session });
+
+    // Step 4: Send the verification code to the user's email
     await sendVerificationCode(email, code);
+
+    // Step 5: Commit the transaction
+    await session.commitTransaction();
+
+    // Step 6: End the session
+    session.endSession();
+
+    return { success: true }; // Return success response
   } catch (error) {
-    const err = new Error("Internal Server Error. Please Try Again");
-    err.statusCode = 500;
-    return err;
+    // Step 7: Abort the transaction if there is an error
+    await session.abortTransaction();
+
+    // Step 8: End the session after aborting
+    session.endSession();
+
+    // If no specific status code is set, default to 500 (Internal Server Error)
+    const err = new Error(
+      error.message || "Internal Server Error. Please Try Again"
+    );
+    err.statusCode = error.statusCode || 500;
+    throw err; // Re-throw the error to be handled globally
   }
 };
 
 export const updatePassword = async (email, password) => {
+  // Start a session for the transaction
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -229,157 +339,153 @@ export const updatePassword = async (email, password) => {
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404; // Not found status code
-      throw error;
+      throw error; // If user doesn't exist, throw an error
     }
 
     // Step 2: Hash the new password
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Step 3: Update the user's password
     user.password = hashedPassword;
 
     // Step 4: Save the user
     await user.save({ session });
 
-    // Commit the transaction
+    // Step 5: Commit the transaction
     await session.commitTransaction();
-    
-    // Omit sensitive fields from returned user object
+
+    // Step 6: Omit sensitive fields from returned user object
     const { password: pass, ...updatedUser } = user.toObject();
-    
-    // End the session
+
+    // Step 7: End the session
     session.endSession();
 
     return { success: true, user: updatedUser }; // Return a success response
   } catch (error) {
-    console.log("Password update failed:", error.message);
+    // Step 8: Abort the transaction if there is an error
     await session.abortTransaction();
+
+    // Step 9: End the session after aborting
     session.endSession();
 
-    // If no statusCode is set, default to 500
+    // If no specific status code is set, default to 500 (Internal Server Error)
     const err = new Error(
       error.message || "Internal Server Error. Please Try Again"
     );
-    err.statusCode = error.statusCode || 500; // Maintain the status code if set
-    throw err; // Re-throw the error to be caught in the handler
+    err.statusCode = error.statusCode || 500;
+    throw err; // Re-throw the error to be handled globally
   }
 };
 
-
-export async function logIn(email, password) {
-  console.log("Logging in with email:", email, "and password:", password);
-
+export const logIn = async (email, password) => {
   // Start a session for the transaction
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
+    // Step 1: Find the user by email
     const existingUser = await User.findOne({ email }).session(session);
     if (!existingUser) {
-      console.log("User does not exist in the database");
       const error = new Error("User not found");
-      error.statusCode = 404; // Set specific status code
-      throw error;
+      error.statusCode = 404; // Not found status code
+      throw error; // If the user doesn't exist, throw an error
     }
 
-    console.log("User exists, checking password...");
-    const isPasswordValid = await bcrypt.compare(password, existingUser.password);
+    // Step 2: Verify the password
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      existingUser.password
+    );
     if (!isPasswordValid) {
-      console.log("Password is invalid");
       const error = new Error("Invalid Credentials");
-      error.statusCode = 401; // Set specific status code
-      throw error;
+      error.statusCode = 401; // Unauthorized status code
+      throw error; // If the password is invalid, throw an error
     }
 
-    console.log("Password is valid, generating access and refresh tokens...");
+    // Step 3: Generate tokens (access token and refresh token)
     const {
       password: userPassword,
       verificationCode,
       refreshToken,
       ...user
     } = existingUser.toObject();
-    
     const accessToken = generateAccessToken(existingUser);
     const generatedRefreshToken = generateRefreshToken(existingUser);
-    
-    existingUser.refreshToken = generatedRefreshToken; // Use generated token
-    await existingUser.save({ session }); // Save within the session
 
-    console.log("Successfully logged in, returning user data");
-    // Commit the transaction
+    // Step 4: Save the new refresh token to the user
+    existingUser.refreshToken = generatedRefreshToken; // Use the newly generated token
+    await existingUser.save({ session }); // Save the user with the session
+
+    // Step 5: Commit the transaction
     await session.commitTransaction();
 
+    // Step 6: Return user data and tokens
     return { user, accessToken, generatedRefreshToken };
   } catch (error) {
-    console.log("Login failed:", error.message);
+    // Step 7: Abort the transaction if there is an error
     await session.abortTransaction();
-    // If no statusCode is set, default to 500
-    const err = new Error(error.message || "Internal Server Error. Please Try Again");
-    err.statusCode = error.statusCode || 500; // Maintain the status code if set
-    throw err; // Re-throw the error to be caught in the handler
+
+    // Step 8: If no statusCode is set, default to 500 (Internal Server Error)
+    const err = new Error(
+      error.message || "Internal Server Error. Please Try Again"
+    );
+    err.statusCode = error.statusCode || 500; // Set status code if available, otherwise 500
+    throw err; // Re-throw the error to be handled globally
   } finally {
-    // End the session regardless of success or error
+    // Step 9: End the session after the operation
     session.endSession();
   }
-}
+};
 
 export const resendOtp = async (email) => {
-  console.log("Resending OTP for:", email);
-
   // Start a session for the transaction
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
+    // Step 1: Find the PendingUser by email
     const user = await PendingUser.findOne({ email }).session(session);
     if (!user) {
       const error = new Error("OTP expired. Register Again");
-      error.statusCode = 404; // Set specific status code
-      throw error;
+      error.statusCode = 404; // Not found status code
+      throw error; // If the user doesn't exist, throw an error
     }
 
-    console.log(user);
-
+    // Step 2: Generate new verification code and update the user
     const code = generateVerificationCode();
     user.verificationCode = code;
-    await user.save({ session }); // Save the user within the session
+    await user.save({ session }); // Save the updated user with session
 
-    console.log("Updated user:", user);
-
-    // Attempt to send the verification code
+    // Step 3: Attempt to send the verification code to the user
     try {
-      console.log("Attempting to send verification code");
-      await sendVerificationCode(email, code);
-      console.log("Verification code sent successfully");
+      await sendVerificationCode(email, code); // Send the new code
+      // Step 4: Commit the transaction if sending is successful
+      await session.commitTransaction();
 
-      await session.commitTransaction(); // Commit if everything goes well
-
-      // Return success message only if the entire process is successful
+      // Step 5: Return success message
       return {
         success: true,
         message: "Verification code resent successfully.",
       };
     } catch (error) {
-      console.log("Error sending verification code:", error.message);
-      // Abort the transaction if sending the verification code fails
+      // Step 6: Handle error when sending verification code fails
       await session.abortTransaction();
       const sendError = new Error("Failed to send verification code");
-      sendError.statusCode = 500; // Set specific status code
+      sendError.statusCode = 500; // Internal server error status
       throw sendError;
     }
   } catch (error) {
-    console.log("Error resending OTP:", error.message);
-    // Abort transaction on any error before commit
+    // Step 7: Abort transaction on any error before committing
     await session.abortTransaction();
 
-    // If no statusCode is set, default to 500
+    // Step 8: Throw an error with a specific message and status code
     const err = new Error(
       error.message || "Internal Server Error. Please Try Again"
     );
-    err.statusCode = error.statusCode || 500; // Maintain the status code if set
+    err.statusCode = error.statusCode || 500; // Default to 500 if no status code
     throw err; // Re-throw the error to be caught in the handler
   } finally {
-    // Ensure session is ended regardless of success or error
+    // Step 9: Ensure the session is ended after the process
     session.endSession();
   }
 };
@@ -387,75 +493,87 @@ export const resendOtp = async (email) => {
 export const createAdmin = async (details) => {
   const { email, password, ...rest } = details;
 
-  // Check if the admin already exists
+  // Step 1: Check if the admin already exists in the database
   const foundUser = await Admin.findOne({ email });
   if (foundUser) {
-    throw new Error("Administrator already exists");
+    const error = new Error("Administrator already exists");
+    error.statusCode = 400; // Bad request status code
+    throw error; // If the admin already exists, throw an error
   }
 
   try {
-    // Hash the password
+    // Step 2: Hash the provided password
     const hashedPwd = await bcrypt.hash(password, 10);
 
-    // Create a new admin instance
+    // Step 3: Create a new Admin instance
     const newAdmin = new Admin({
       email,
       password: hashedPwd,
       ...rest,
     });
 
-    // Save the new admin to the database
+    // Step 4: Save the new admin to the database
     await newAdmin.save();
 
-    // Optionally return the new admin object without the password
+    // Step 5: Omit the sensitive password field from the response
     const { password: _, ...adminData } = newAdmin.toObject();
+
+    // Step 6: Return the newly created admin data
     return adminData;
   } catch (error) {
-    throw new Error("Error creating admin: " + error.message);
+    // Step 7: Catch any errors and throw a custom error
+    const err = new Error("Error creating admin: " + error.message);
+    err.statusCode = 500; // Internal server error status code
+    throw err; // Re-throw the error to be caught in the handler
   }
 };
 
 export const loginAdmin = async (email, password) => {
-  console.log("Logging in admin with email:", email);
+  // Step 1: Find the admin by email
+  const foundAdmin = await Admin.findOne({ email });
+  if (!foundAdmin) {
+    const error = new Error("Admin Does Not Exist");
+    error.statusCode = 404; // Not found status code
+    throw error; // If admin is not found, throw error
+  }
 
   try {
-    const foundAdmin = await Admin.findOne({ email });
-    if (!foundAdmin) {
-      console.log("Admin does not exist in the database");
-      throw new Error("Admin Does Not Exist");
-    }
-
-    console.log("Admin exists, checking password...");
+    // Step 2: Compare the provided password with the stored hash
     const match = await bcrypt.compare(password, foundAdmin.password);
     if (!match) {
-      console.log("Password is invalid");
-      throw new Error("Invalid Credentials");
+      const error = new Error("Invalid Credentials");
+      error.statusCode = 401; // Unauthorized status code
+      throw error; // If password doesn't match, throw error
     }
 
-    console.log("Password is valid, generating access token...");
+    // Step 3: Generate an access token for the admin
     const accessToken = generateAdminAccessToken(foundAdmin);
 
-    console.log("Generating refresh token...");
+    // Step 4: Generate a refresh token for the admin
     const refreshToken = generateAdminRefreshToken(foundAdmin);
-    console.log(refreshToken);
 
-    // Save the refresh token to the admin document
+    // Step 5: Save the generated refresh token to the admin document
     foundAdmin.refreshToken = refreshToken;
     await foundAdmin.save();
 
-    console.log("Successfully logged in admin, returning data", foundAdmin);
+    // Step 6: Return the admin's data without sensitive information
+    const {
+      password: _,
+      refreshToken: __,
+      ...adminData
+    } = foundAdmin.toObject();
+
     return {
-      admin: {
-        name: foundAdmin.firstName + foundAdmin.lastName,
-        email: foundAdmin.email,
-        role: foundAdmin.role,
-        branch: foundAdmin.branch,
-      },
+      admin: adminData, // Omit sensitive fields like password and refresh token
       accessToken,
       refreshToken,
     };
   } catch (error) {
-    console.error("An error occurred while logging in admin:", error.message);
-    throw new Error(error.message);
+    // Step 7: Catch any errors that occurred during the login process
+    const err = new Error(
+      error.message || "An error occurred while logging in admin"
+    );
+    err.statusCode = error.statusCode || 500; // Default to internal server error
+    throw err; // Re-throw the error
   }
 };

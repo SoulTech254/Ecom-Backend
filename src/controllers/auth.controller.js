@@ -49,8 +49,7 @@ export const resetPasswordHandler = async (req, res, next) => {
   try {
     const { email } = req.body;
     const password = await resetPassword(email);
-    console.log(password);
-    res.status(200).json("Password Updated");
+    res.status(200).json("Verification Code Sent");
   } catch (error) {
     next(error);
   }

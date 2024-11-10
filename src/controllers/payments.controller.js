@@ -41,7 +41,7 @@ export const mpesaPaymentHandler = async (req, res, next) => {
         quantity: product.quantity,
       })),
       delivery: {
-        address: deliveryAddress.id,
+        address: deliveryMethod=="pick-up" ? branch : deliveryAddress.id ,
         deliverySlot,
         method: deliveryMethod,
       },

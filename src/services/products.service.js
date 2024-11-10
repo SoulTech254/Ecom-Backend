@@ -130,6 +130,10 @@ export const addToCart = async (userId, productId, quantity = 1) => {
 
 export const getProduct = async (productId, branchId) => {
   try {
+    console.log("Product ID: ", productId)
+    console.log("Branch ID: ", branchId)
+    console.log("Entering getProduct function");
+
     // Convert productId and branchId to ObjectId
     const productObjectId = new mongoose.Types.ObjectId(productId);
     const branchObjectId = new mongoose.Types.ObjectId(branchId);

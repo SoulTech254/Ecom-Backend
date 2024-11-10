@@ -502,6 +502,8 @@ export const updateCategory = async (req, res, next) => {
       // Set the new path
       category.path = newParentCategory.path.concat(newParentId);
       category.parent = newParentId;
+
+      console.log("Updated path:", category.path);
     } else {
       // If parent hasn't changed, retain current path
       category.path = category.path; // or simply omit this line if path is unchanged
