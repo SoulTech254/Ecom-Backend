@@ -530,7 +530,7 @@ export const createAdmin = async (details) => {
 
 export const loginAdmin = async (email, password) => {
   // Step 1: Find the admin by email
-  const foundAdmin = await Admin.findOne({ email });
+  const foundAdmin = await Admin.findOne({ email }).populate("branch");
   if (!foundAdmin) {
     const error = new Error("Admin Does Not Exist");
     error.statusCode = 404; // Not found status code

@@ -10,6 +10,7 @@ import { getOrdersService } from "../services/orders.services.js"; // Adjust the
 export const getAllOrdersController = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
+    const logistic = req.query.logistic;
     const limit = parseInt(req.query.limit) || 10;
     const searchQuery = req.query.searchQuery || "";
     const sortOption = req.query.sortOption || "createdAt"; // Adjusted to match frontend default
@@ -26,6 +27,7 @@ export const getAllOrdersController = async (req, res) => {
       limit,
       sortOption,
       deliverySlot,
+      logistic,
       status,
       method, // Updated field name
       startDate, // Updated field name

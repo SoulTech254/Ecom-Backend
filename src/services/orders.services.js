@@ -115,6 +115,7 @@ export const getOrdersService = async ({
   searchQuery,
   page,
   limit,
+  logistic,
   sortOption,
   deliverySlot,
   status,
@@ -122,6 +123,19 @@ export const getOrdersService = async ({
   startDate,
   endDate,
 }) => {
+  console.log("getOrdersService called with parameters:", {
+    searchQuery,
+    page,
+    limit,
+    logistic,
+    sortOption,
+    deliverySlot,
+    status,
+    method,
+    startDate,
+    endDate,
+  });
+
   const startIndex = (page - 1) * limit;
 
   const searchConditions = [];
@@ -174,11 +188,22 @@ export const getOrdersService = async ({
     });
   }
 
+  // Filter by Logistics
+  if (logistic) {
+    // Ensure logistic is a valid ObjectId string and convert it to an ObjectId
+    if (mongoose.Types.ObjectId.isValid(logistic)) {
+      searchConditions.push({ logistics: logistic });
+    } else {
+      console.error("Invalid logistic ObjectId:", logistic);
+    }
+  }
+
   const countFilter =
     searchConditions.length > 0 ? { $and: searchConditions } : {};
 
   try {
     const totalCount = await Order.countDocuments(countFilter).exec();
+    console.log("getOrdersService: totalCount:", totalCount);
 
     let queryBuilder =
       searchConditions.length > 0
@@ -198,6 +223,7 @@ export const getOrdersService = async ({
 
     // Execute query and populate references
     const results = await queryBuilder.exec();
+    console.log("getOrdersService: results:", results);
 
     await Order.populate(results, [
       { path: "user" },
@@ -219,6 +245,7 @@ export const getOrdersService = async ({
       previous: startIndex > 0 ? { page: page - 1, limit } : null,
     };
   } catch (error) {
+    console.error("getOrdersService error:", error);
     throw new Error(error.message || "Error retrieving orders.");
   }
 };
